@@ -3,13 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Filtro AR - Movimiento Completo y Foto Funcional</title>
-
-    <script src="https://aframe.io/releases/1.0.4/aframe.min.js"></script>
-    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
-    <script src="https://raw.githack.com/donmccurdy/aframe-extras/master/dist/aframe-extras.loaders.min.js"></script>
-    <script src="https://raw.githack.com/AR-js-org/studio-backend/master/src/modules/marker/tools/gesture-detector.js"></script>
-    <script src="https://raw.githack.com/AR-js-org/studio-backend/master/src/modules/marker/tools/gesture-handler.js"></script>
+    <title>Modelo 3D Manipulable</title>
     <style>
         body { margin: 0; overflow: hidden; }
         #buttons {
@@ -19,123 +13,86 @@
             transform: translateX(-50%);
             display: flex;
             gap: 10px;
-            z-index: 9999;
+            z-index: 1000;
         }
         button {
-            padding: 10px 15px;
-            font-size: 16px;
+            padding: 10px 20px;
+            background: #28a745;
+            color: white;
             border: none;
             border-radius: 5px;
             cursor: pointer;
         }
-        #take-photo { background: #28a745; color: white; }
-        #share-instagram { background: #e4405f; color: white; }
     </style>
 </head>
 <body>
-
-    <a-scene
-        vr-mode-ui="enabled: false;"
-        arjs="sourceType: webcam; debugUIEnabled: false;"
-        embedded
-        gesture-detector
-    >
-        <a-assets>
-            <a-asset-item id="animated-asset" src="assets/asset.glb"></a-asset-item>
-        </a-assets>
-
-        <a-camera position="0 1.6 0"></a-camera>
-
-        <!-- Modelo 3D con gestos personalizados -->
-        <a-entity
-            id="model"
-            gltf-model="#animated-asset"
-            position="0 0 -3"
-            scale="0.3 0.3 0.3"
-            rotation="0 0 0"
-            gesture-handler="dragAxis: both; minScale: 0.1; maxScale: 2"
-            class="clickable"
-        ></a-entity>
-    </a-scene>
-
-    <!-- Botones -->
     <div id="buttons">
         <button id="take-photo">Tomar Foto</button>
-        <button id="share-instagram">Compartir en Instagram</button>
     </div>
 
-    <canvas id="photoCanvas" style="display:none;"></canvas>
-
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/hammer.js/2.0.8/hammer.min.js"></script>
     <script>
-        // --------------------------------------------
-        // Solución 1: Movimiento vertical/horizontal
-        // --------------------------------------------
-        // Sobreescribimos el gesto de arrastre para permitir movimiento en ambos ejes
-        AFRAME.registerComponent('custom-gesture-handler', {
-            init: function () {
-                this.el.addEventListener('onefingermove', (event) => {
-                    const camera = document.querySelector('a-camera');
-                    const position = this.el.getAttribute('position');
-                    const delta = event.detail.positionDelta;
-                    
-                    // Convertir movimiento 2D a 3D relativo a la cámara
-                    const movementX = delta.x * 0.05;
-                    const movementY = delta.y * 0.05;
-                    
-                    this.el.setAttribute('position', {
-                        x: position.x + movementX,
-                        y: position.y - movementY, // Invertir eje Y
-                        z: position.z
-                    });
-                });
-            }
+        // Configurar escena, cámara y renderizador
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        // Cargar modelo 3D (ejemplo: un cubo)
+        const geometry = new THREE.BoxGeometry();
+        const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+        const cube = new THREE.Mesh(geometry, material);
+        scene.add(cube);
+        camera.position.z = 5;
+
+        // Manejar gestos táctiles con Hammer.js
+        const hammer = new Hammer(document.body);
+        let scale = 1;
+        let isDragging = false;
+
+        // Escalar con pellizco
+        hammer.get('pinch').set({ enable: true });
+        hammer.on('pinch', (e) => {
+            scale *= e.scale;
+            cube.scale.set(scale, scale, scale);
         });
 
-        // Reemplazar el gesture-handler por el componente personalizado
-        document.querySelector('#model').removeAttribute('gesture-handler');
-        document.querySelector('#model').setAttribute('custom-gesture-handler', '');
-
-        // --------------------------------------------
-        // Solución 2: Captura de foto sin congelamiento
-        // --------------------------------------------
-        document.getElementById("take-photo").addEventListener("click", function () {
-            const scene = document.querySelector('a-scene');
-            const renderer = scene.renderer;
-            const canvas = renderer.domElement;
-
-            // Crear un canvas temporal para capturar la escena
-            const tempCanvas = document.createElement('canvas');
-            const tempContext = tempCanvas.getContext('2d');
-            
-            tempCanvas.width = canvas.width;
-            tempCanvas.height = canvas.height;
-            
-            // Copiar el contenido del renderizador WebGL al canvas 2D
-            tempContext.drawImage(canvas, 0, 0, tempCanvas.width, tempCanvas.height);
-
-            // Convertir a Blob y descargar
-            tempCanvas.toBlob(function (blob) {
-                const url = URL.createObjectURL(blob);
-                const link = document.createElement('a');
-                link.href = url;
-                link.download = 'foto_ar.png';
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                URL.revokeObjectURL(url);
-                alert("Foto guardada correctamente.");
-            }, 'image/png');
+        // Rotar con dos dedos
+        hammer.get('rotate').set({ enable: true });
+        hammer.on('rotate', (e) => {
+            cube.rotation.y += e.rotation * 0.01;
         });
 
-        // Compartir en Instagram (código anterior)
-        document.getElementById("share-instagram").addEventListener("click", function () {
+        // Mover con un dedo
+        hammer.on('pan', (e) => {
+            cube.position.x = e.deltaX * 0.01;
+            cube.position.y = -e.deltaY * 0.01;
+        });
+
+        // Animación
+        function animate() {
+            requestAnimationFrame(animate);
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        // Tomar foto
+        document.getElementById('take-photo').addEventListener('click', () => {
+            const dataURL = renderer.domElement.toDataURL('image/png');
             const link = document.createElement('a');
-            link.href = "instagram://story-camera";
-            document.body.appendChild(link);
+            link.href = dataURL;
+            link.download = 'foto.png';
             link.click();
-            document.body.removeChild(link);
+        });
+
+        // Ajustar en resize
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
         });
     </script>
-
 </body>
 </html>
