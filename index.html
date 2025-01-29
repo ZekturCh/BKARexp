@@ -1,20 +1,96 @@
-<!-- En la sección de carga del modelo, reemplaza la URL: -->
-<script>
-    // —— Cargar modelo desde GitHub (ramal main) ——
-    const loader = new THREE.GLTFLoader();
-    const modelURL = 'https://raw.githubusercontent.com/ZekturCh/BKTry9ru5th/main/assets/3dmodel.glb'; // ✅ URL corregida
-
-    loader.load(
-        modelURL,
-        (gltf) => {
-            model = gltf.scene;
-            scene.add(model);
-            document.getElementById('loading').style.display = 'none';
-        },
-        undefined,
-        (error) => {
-            console.error('Error:', error);
-            alert('El modelo no se encontró. Verifica la URL.');
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modelo 3D de BKTry9ru5th</title>
+    <style>
+        body { 
+            margin: 0; 
+            overflow: hidden; 
         }
-    );
-</script>
+        #buttons {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 10px;
+            z-index: 1000;
+        }
+        button {
+            padding: 10px 20px;
+            background: #28a745;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        #loading {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: white;
+            font-family: Arial;
+            background: rgba(0,0,0,0.7);
+            padding: 10px;
+            border-radius: 5px;
+        }
+    </style>
+    <!-- Cargar dependencias primero -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/hammer.js/2.0.8/hammer.min.js"></script>
+</head>
+<body>
+    <div id="loading">Cargando modelo 3D...</div>
+    <div id="buttons">
+        <button id="take-photo">Tomar Foto</button>
+    </div>
+
+    <script>
+        // —— Configuración inicial ——
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        let model;
+
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setClearColor(0xffffff); // Fondo blanco
+        document.body.appendChild(renderer.domElement);
+
+        // —— Ajustes de sensibilidad ——
+        const SENSIBILITY = {
+            move: 0.003,
+            rotate: 0.001,
+            scale: 0.15
+        };
+
+        // —— Cargar modelo desde GitHub (URL corregida) ——
+        const loader = new THREE.GLTFLoader();
+        const modelURL = 'https://raw.githubusercontent.com/ZekturCh/BKTry9ru5th/main/assets/3dmodel.glb';
+
+        loader.load(
+            modelURL,
+            (gltf) => {
+                model = gltf.scene;
+                scene.add(model);
+                model.position.set(0, -1, 0);
+                model.scale.set(0.5, 0.5, 0.5);
+                
+                // Iluminación
+                const light = new THREE.AmbientLight(0xffffff, 1);
+                scene.add(light);
+                
+                document.getElementById('loading').style.display = 'none';
+            },
+            undefined,
+            (error) => {
+                console.error('Error:', error);
+                alert('Error al cargar el modelo. Verifica la consola.');
+            }
+        );
+
+        // —— Configurar cámara ——
+        camera.position.set(0, 
