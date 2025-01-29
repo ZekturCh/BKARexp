@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Modelo 3D con Sensibilidad Ajustada</title>
+    <title>Modelo 3D de BKTry9ru5th</title>
     <style>
         body { margin: 0; overflow: hidden; }
         #buttons {
@@ -30,6 +30,9 @@
             transform: translateX(-50%);
             color: white;
             font-family: Arial;
+            background: rgba(0,0,0,0.7);
+            padding: 10px;
+            border-radius: 5px;
         }
     </style>
 </head>
@@ -49,42 +52,50 @@
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
         const renderer = new THREE.WebGLRenderer({ antialias: true });
-        let model; // Referencia al modelo cargado
+        let model; 
 
         renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.setClearColor(0x000000); // Fondo negro
+        renderer.setClearColor(0xffffff); // Fondo blanco
         document.body.appendChild(renderer.domElement);
 
-        // —— Ajustes de sensibilidad ——
+        // —— Ajustes de sensibilidad optimizados ——
         const SENSIBILITY = {
-            move: 0.005,    // Menor = más lento
-            rotate: 0.002,  // Menor = más lento
-            scale: 0.25     // Menor = menos sensible al pellizco
+            move: 0.003,    // Movimiento más suave
+            rotate: 0.001,  // Rotación más lenta
+            scale: 0.15     // Escalado menos sensible
         };
 
-        // —— Cargar modelo GLB desde GitHub ——
+        // —— Cargar modelo desde GitHub ——
         const loader = new THREE.GLTFLoader();
-        const modelURL = 'URL_DIRECTA_DE_TU_MODELO_AQUI.glb'; // <— Reemplazar con tu URL
+        const modelURL = 'https://raw.githubusercontent.com/ZekturCh/BKTry9ru5th/gh-pages/assets/3dmodel.glb'; // URL actualizada
 
         loader.load(
             modelURL,
             (gltf) => {
                 model = gltf.scene;
                 scene.add(model);
+                
+                // Ajustar posición y escala inicial
+                model.position.set(0, -1, 0);
+                model.scale.set(0.5, 0.5, 0.5); 
+                
+                // Añadir iluminación básica
+                const light = new THREE.AmbientLight(0xffffff, 1);
+                scene.add(light);
+                
                 document.getElementById('loading').style.display = 'none';
             },
             undefined,
             (error) => {
-                console.error('Error al cargar el modelo:', error);
-                alert('Error al cargar el modelo 3D');
+                console.error('Error:', error);
+                alert('No se pudo cargar el modelo. Revisa la consola.');
             }
         );
 
         // —— Configurar cámara ——
-        camera.position.z = 5;
-        camera.position.y = 2;
+        camera.position.set(0, 0, 5); // Posición inicial de la cámara
 
-        // —— Gestos táctiles ——
+        // —— Gestos táctiles mejorados ——
         const hammer = new Hammer(document.body);
         let scale = 1;
 
@@ -107,7 +118,7 @@
         hammer.on('pinch', (e) => {
             if (!model) return;
             scale += (e.scale - 1) * SENSIBILITY.scale;
-            scale = Math.max(0.1, Math.min(5, scale)); // Límites de escala
+            scale = Math.max(0.3, Math.min(2, scale)); // Límites de escala
             model.scale.set(scale, scale, scale);
         });
 
@@ -123,7 +134,7 @@
             const dataURL = renderer.domElement.toDataURL('image/png');
             const link = document.createElement('a');
             link.href = dataURL;
-            link.download = 'foto-3d.png';
+            link.download = 'bktry9ru5th-modelo.png';
             link.click();
         });
 
