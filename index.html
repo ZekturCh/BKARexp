@@ -1,149 +1,20 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Modelo 3D de BKTry9ru5th</title>
-    <style>
-        body { margin: 0; overflow: hidden; }
-        #buttons {
-            position: fixed;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            display: flex;
-            gap: 10px;
-            z-index: 1000;
+<!-- En la sección de carga del modelo, reemplaza la URL: -->
+<script>
+    // —— Cargar modelo desde GitHub (ramal main) ——
+    const loader = new THREE.GLTFLoader();
+    const modelURL = 'https://raw.githubusercontent.com/ZekturCh/BKTry9ru5th/main/assets/3dmodel.glb'; // ✅ URL corregida
+
+    loader.load(
+        modelURL,
+        (gltf) => {
+            model = gltf.scene;
+            scene.add(model);
+            document.getElementById('loading').style.display = 'none';
+        },
+        undefined,
+        (error) => {
+            console.error('Error:', error);
+            alert('El modelo no se encontró. Verifica la URL.');
         }
-        button {
-            padding: 10px 20px;
-            background: #28a745;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-        #loading {
-            position: fixed;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            color: white;
-            font-family: Arial;
-            background: rgba(0,0,0,0.7);
-            padding: 10px;
-            border-radius: 5px;
-        }
-    </style>
-</head>
-<body>
-    <div id="loading">Cargando modelo 3D...</div>
-    <div id="buttons">
-        <button id="take-photo">Tomar Foto</button>
-    </div>
-
-    <!-- Three.js y dependencias -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/hammer.js/2.0.8/hammer.min.js"></script>
-
-    <script>
-        // —— Configuración inicial ——
-        const scene = new THREE.Scene();
-        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        const renderer = new THREE.WebGLRenderer({ antialias: true });
-        let model; 
-
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.setClearColor(0xffffff); // Fondo blanco
-        document.body.appendChild(renderer.domElement);
-
-        // —— Ajustes de sensibilidad optimizados ——
-        const SENSIBILITY = {
-            move: 0.003,    // Movimiento más suave
-            rotate: 0.001,  // Rotación más lenta
-            scale: 0.15     // Escalado menos sensible
-        };
-
-        // —— Cargar modelo desde GitHub ——
-        const loader = new THREE.GLTFLoader();
-        const modelURL = 'https://raw.githubusercontent.com/ZekturCh/BKTry9ru5th/gh-pages/assets/3dmodel.glb'; // URL actualizada
-
-        loader.load(
-            modelURL,
-            (gltf) => {
-                model = gltf.scene;
-                scene.add(model);
-                
-                // Ajustar posición y escala inicial
-                model.position.set(0, -1, 0);
-                model.scale.set(0.5, 0.5, 0.5); 
-                
-                // Añadir iluminación básica
-                const light = new THREE.AmbientLight(0xffffff, 1);
-                scene.add(light);
-                
-                document.getElementById('loading').style.display = 'none';
-            },
-            undefined,
-            (error) => {
-                console.error('Error:', error);
-                alert('No se pudo cargar el modelo. Revisa la consola.');
-            }
-        );
-
-        // —— Configurar cámara ——
-        camera.position.set(0, 0, 5); // Posición inicial de la cámara
-
-        // —— Gestos táctiles mejorados ——
-        const hammer = new Hammer(document.body);
-        let scale = 1;
-
-        // Mover (1 dedo)
-        hammer.on('pan', (e) => {
-            if (!model) return;
-            model.position.x += e.deltaX * SENSIBILITY.move;
-            model.position.y -= e.deltaY * SENSIBILITY.move;
-        });
-
-        // Rotar (2 dedos)
-        hammer.get('rotate').set({ enable: true });
-        hammer.on('rotate', (e) => {
-            if (!model) return;
-            model.rotation.y += e.rotation * SENSIBILITY.rotate;
-        });
-
-        // Escalar (pellizco)
-        hammer.get('pinch').set({ enable: true });
-        hammer.on('pinch', (e) => {
-            if (!model) return;
-            scale += (e.scale - 1) * SENSIBILITY.scale;
-            scale = Math.max(0.3, Math.min(2, scale)); // Límites de escala
-            model.scale.set(scale, scale, scale);
-        });
-
-        // —— Animación ——
-        function animate() {
-            requestAnimationFrame(animate);
-            renderer.render(scene, camera);
-        }
-        animate();
-
-        // —— Tomar foto ——
-        document.getElementById('take-photo').addEventListener('click', () => {
-            const dataURL = renderer.domElement.toDataURL('image/png');
-            const link = document.createElement('a');
-            link.href = dataURL;
-            link.download = 'bktry9ru5th-modelo.png';
-            link.click();
-        });
-
-        // —— Ajustar en resize ——
-        window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-        });
-    </script>
-</body>
-</html>
+    );
+</script>
