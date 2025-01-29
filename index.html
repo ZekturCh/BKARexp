@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Filtro AR - Sin Trackeo y Guardado de Fotos</title>
+    <title>Filtro AR - Movimiento Vertical/Horizontal</title>
 
     <script src="https://aframe.io/releases/1.0.4/aframe.min.js"></script>
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
@@ -45,16 +45,15 @@
 
         <a-camera position="0 1.6 0"></a-camera>
 
-        <!-- Modelo 3D sin trackeo -->
+        <!-- Modelo 3D con gestos completos (incluyendo vertical) -->
         <a-entity
             id="model"
             gltf-model="#animated-asset"
             position="0 0 -3"
             scale="0.3 0.3 0.3"
             rotation="0 0 0"
-            gesture-handler="minScale: 0.1; maxScale: 2;"
+            gesture-handler="minScale: 0.1; maxScale: 2; dragAxis: both"
             class="clickable"
-    
         ></a-entity>
     </a-scene>
 
@@ -67,7 +66,7 @@
     <canvas id="photoCanvas" style="display:none;"></canvas>
 
     <script>
-        // Tomar foto y guardarla en la galería
+        // Tomar foto y guardarla en la galería (código igual al anterior)
         document.getElementById("take-photo").addEventListener("click", function () {
             let video = document.querySelector("video");
             if (!video) {
@@ -80,10 +79,8 @@
             canvas.width = video.videoWidth;
             canvas.height = video.videoHeight;
 
-            // Captura la imagen de la cámara
             context.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-            // Convierte a Blob para descargar
             canvas.toBlob(function (blob) {
                 let url = URL.createObjectURL(blob);
                 let link = document.createElement("a");
@@ -93,12 +90,11 @@
                 link.click();
                 document.body.removeChild(link);
                 URL.revokeObjectURL(url);
-
                 alert("Foto guardada en tu dispositivo.");
             }, "image/png");
         });
 
-        // Compartir en Instagram
+        // Compartir en Instagram (código igual al anterior)
         document.getElementById("share-instagram").addEventListener("click", function () {
             let link = document.createElement("a");
             link.href = "instagram://story-camera";
