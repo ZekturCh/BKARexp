@@ -74,7 +74,14 @@
     if (mode === "move") {
         model.setAttribute("position", `${pos.x + deltaX * 0.01} ${pos.y - deltaY * 0.01} ${pos.z}`);
     } else if (mode === "rotate") {
-        model.setAttribute("rotation", `${rot.x - deltaY} ${rot.y + deltaX} ${rot.z}`);
+    let newRotX = rot.x - deltaY; // Rotar en X bajo su propio eje
+    let newRotY = rot.y + deltaX; // Mantiene la rotación en Y
+    
+    // Corregimos el ángulo X para evitar movimientos extraños
+    if (newRotX > 90) newRotX = 90;
+    if (newRotX < -90) newRotX = -90;
+
+    model.setAttribute("rotation", `${newRotX} ${newRotY} ${rot.z}`);
     } else if (mode === "scale") {
         let newScale = Math.max(0.2, scale.x + deltaY * 0.01);
         model.setAttribute("scale", `${newScale} ${newScale} ${newScale}`);
