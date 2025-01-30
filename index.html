@@ -58,29 +58,49 @@
         let moveBtn = document.getElementById("move-btn");
         let rotateBtn = document.getElementById("rotate-btn");
         let scaleBtn = document.getElementById("scale-btn");
-                     let useFrontCamera = false; // Estado de la cámara (false = trasera, true = frontal)
-                    
-                        document.getElementById("switch-camera-btn").addEventListener("click", async () => {
-                            useFrontCamera = !useFrontCamera; // Alternar entre cámaras
-                    
-                            let constraints = {
-                                video: {
-                                    facingMode: useFrontCamera ? "user" : "environment"
-                                }
-                            };
-                    
-                            try {
-                                let stream = await navigator.mediaDevices.getUserMedia(constraints);
-                                let videoTracks = stream.getVideoTracks();
-                                
-                                if (videoTracks.length > 0) {
-                                    let arCamera = document.querySelector("a-scene").components["arjs"].arToolkitContext.arController.ctx;
-                                    arCamera.srcObject = stream;
-                                }
-                            } catch (error) {
-                                console.error("Error al cambiar de cámara:", error);
+
+           let useFrontCamera = false; // Estado de la cámara (false = trasera, true = frontal)
+                        
+                            document.getElementById("switch-camera-btn").addEventListener("click", () => {
+                                useFrontCamera = !useFrontCamera; // Alternar entre cámaras
+                        
+                                // 🔥 Recargar la escena con la nueva cámara
+                                reloadScene();
+                            });
+                        
+                            function reloadScene() {
+                                // ✅ Eliminar la escena anterior
+                                let oldScene = document.querySelector("a-scene");
+                                if (oldScene) oldScene.remove();
+                        
+                                // ✅ Crear una nueva escena con el facingMode correcto
+                                let scene = document.createElement("a-scene");
+                                scene.setAttribute("embedded", "");
+                                scene.setAttribute("arjs", `sourceType: webcam; facingMode: ${useFrontCamera ? "user" : "environment"}`);
+                        
+                                // Agregar los elementos dentro de la escena
+                                let assets = document.createElement("a-assets");
+                                let model = document.createElement("a-asset-item");
+                                model.setAttribute("id", "model");
+                                model.setAttribute("src", "assets/asset.glb");
+                                assets.appendChild(model);
+                                scene.appendChild(assets);
+                        
+                                let entity = document.createElement("a-entity");
+                                entity.setAttribute("id", "model-container");
+                                entity.setAttribute("gltf-model", "#model");
+                                entity.setAttribute("position", "0 0 -2");
+                                entity.setAttribute("scale", "1 1 1");
+                                scene.appendChild(entity);
+                        
+                                let camera = document.createElement("a-camera");
+                                camera.setAttribute("position", "0 1.6 0");
+                                scene.appendChild(camera);
+                        
+                                // Agregar la nueva escena al body
+                                document.body.appendChild(scene);
                             }
-                        });
+
         // Función para cambiar modo y actualizar estilos
         function setMode(newMode, button) {
             mode = newMode;
