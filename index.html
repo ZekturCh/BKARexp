@@ -26,12 +26,6 @@
             background: #007bff;
             color: white;
         }
-        a-canvas {
-    position: absolute;
-    top: 0;
-    left: 0;
-    z-index: 1;
-}
     </style>
 </head>
 <body>
@@ -47,8 +41,6 @@
         <button id="move-btn">Mover</button>
         <button id="rotate-btn">Rotar</button>
         <button id="scale-btn">Escalar</button>
-        <button id="capture-btn">📸 Capturar</button>
-        <button id="switch-camera">↔ Cámara</button>
     </div>
 
     <script>
@@ -60,41 +52,44 @@
         document.getElementById("rotate-btn").addEventListener("click", () => mode = "rotate");
         document.getElementById("scale-btn").addEventListener("click", () => mode = "scale");
 
-        function handleMove(event) {
-            if (!mode) return;
+       function handleMove(event) {
+    if (!mode) return;
 
-            let clientX = event.touches ? event.touches[0].clientX : event.clientX;
-            let clientY = event.touches ? event.touches[0].clientY : event.clientY;
+    let clientX = event.touches ? event.touches[0].clientX : event.clientX;
+    let clientY = event.touches ? event.touches[0].clientY : event.clientY;
 
-            if (lastX === undefined || lastY === undefined) {
-                lastX = clientX;
-                lastY = clientY;
-                return;
-            }
+    if (lastX === undefined || lastY === undefined) {
+        lastX = clientX;
+        lastY = clientY;
+        return;
+    }
 
-            let deltaX = (clientX - lastX) * 0.5;
-            let deltaY = (clientY - lastY) * 0.5;
+    let deltaX = (clientX - lastX) * 0.5;  // Controla velocidad de rotación
+    let deltaY = (clientY - lastY) * 0.5;
 
-            let pos = model.getAttribute("position");
-            let rot = model.getAttribute("rotation");
-            let scale = model.getAttribute("scale");
+    let pos = model.getAttribute("position");
+    let rot = model.getAttribute("rotation");
+    let scale = model.getAttribute("scale");
 
-            if (mode === "move") {
-                model.setAttribute("position", `${pos.x + deltaX * 0.01} ${pos.y - deltaY * 0.01} ${pos.z}`);
-            } else if (mode === "rotate") {
-                let newRotX = rot.x - deltaY;
-                let newRotY = rot.y + deltaX;
-                if (newRotX > 90) newRotX = 90;
-                if (newRotX < -90) newRotX = -90;
-                model.setAttribute("rotation", `${newRotX} ${newRotY} ${rot.z}`);
-            } else if (mode === "scale") {
-                let newScale = Math.max(0.2, scale.x + deltaY * 0.01);
-                model.setAttribute("scale", `${newScale} ${newScale} ${newScale}`);
-            }
+    if (mode === "move") {
+        model.setAttribute("position", ${pos.x + deltaX * 0.01} ${pos.y - deltaY * 0.01} ${pos.z});
+    } else if (mode === "rotate") {
+    let newRotX = rot.x - deltaY; // Rotar en X bajo su propio eje
+    let newRotY = rot.y + deltaX; // Mantiene la rotación en Y
+    
+    // Corregimos el ángulo X para evitar movimientos extraños
+    if (newRotX > 90) newRotX = 90;
+    if (newRotX < -90) newRotX = -90;
 
-            lastX = clientX;
-            lastY = clientY;
-        }
+    model.setAttribute("rotation", ${newRotX} ${newRotY} ${rot.z});
+    } else if (mode === "scale") {
+        let newScale = Math.max(0.2, scale.x + deltaY * 0.01);
+        model.setAttribute("scale", ${newScale} ${newScale} ${newScale});
+    }
+
+    lastX = clientX;
+    lastY = clientY;
+}
 
         function resetLastTouch() {
             lastX = undefined;
@@ -105,86 +100,6 @@
         document.addEventListener("touchmove", handleMove);
         document.addEventListener("mouseup", resetLastTouch);
         document.addEventListener("touchend", resetLastTouch);
-
-        document.getElementById("capture-btn").addEventListener("click", async () => {
-            let scene = document.querySelector("a-scene");
-            let canvas = scene.renderer.domElement;  // Captura la imagen desde WebGL
-
-            // Convertir canvas a imagen
-            let imageData = canvas.toDataURL("image/png");
-
-            // Convertir imagen en archivo para compartir
-            let blob = await (await fetch(imageData)).blob();
-            let file = new File([blob], "captura_ar.png", { type: "image/png" });
-
-            try {
-                // Intentar compartir la imagen en redes sociales
-                if (navigator.canShare && navigator.canShare({ files: [file] })) {
-                    await navigator.share({ files: [file], title: "Mira mi AR" });
-                } else {
-                    // Guardar la imagen en la galería del teléfono
-                    let link = document.createElement("a");
-                    link.href = imageData;
-                    link.download = "captura_ar.png";
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                }
-
-                // Intentar abrir Instagram directamente
-                setTimeout(() => {
-                    window.location.href = "instagram://story-camera";  // Abre la cámara de historias de Instagram
-                }, 1000);
-            } catch (err) {
-                console.error("Error al compartir:", err);
-                alert("No se pudo compartir la imagen.");
-            }
-        });
-
-        let currentFacingMode = 'environment';
-
-// Configurar cámara frontal
-async function switchCamera() {
-    currentFacingMode = currentFacingMode === 'environment' ? 'user' : 'environment';
-    
-    // Detener stream actual
-    if (videoStream) {
-        videoStream.getTracks().forEach(track => track.stop());
-    }
-    
-    // Nuevo elemento de escena
-    const newScene = document.createElement('a-scene');
-    newScene.innerHTML = `
-        <a-assets>
-            <a-asset-item id="model" src="assets/asset.glb"></a-asset-item>
-        </a-assets>
-        <a-entity id="model-container" 
-                 gltf-model="#model" 
-                 position="0 0 -2" 
-                 scale="${currentFacingMode === 'user' ? '-1 1 1' : '1 1 1'}">
-        </a-entity>
-        <a-camera position="0 1.6 0"></a-camera>
-    `;
-    
-    // Configurar AR.js con nueva cámara
-    newScene.setAttribute('embedded', '');
-    newScene.setAttribute('arjs', `sourceType: webcam; facingMode: ${currentFacingMode}`);
-    
-    // Reemplazar escena
-    const oldScene = document.querySelector('a-scene');
-    oldScene.parentNode.replaceChild(newScene, oldScene);
-    
-    // Restablecer listeners
-    initializeScene();
-}
-
-document.getElementById("switch-camera").addEventListener("click", switchCamera);
-
-// Función para reiniciar listeners
-function initializeScene() {
-    model = document.getElementById("model-container");
-    // Resto de inicializaciones...
-}
     </script>
 </body>
 </html>
