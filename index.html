@@ -48,41 +48,64 @@
         let mode = "";
         let lastX, lastY;
 
+        // Obtener valores iniciales del modelo
+        let pos = model.getAttribute("position");
+        let rot = model.getAttribute("rotation");
+        let scale = model.getAttribute("scale");
+
         document.getElementById("move-btn").addEventListener("click", () => mode = "move");
         document.getElementById("rotate-btn").addEventListener("click", () => mode = "rotate");
         document.getElementById("scale-btn").addEventListener("click", () => mode = "scale");
 
-       function handleMove(event) {
+        function handleMove(event) {
             if (!mode) return;
 
             let clientX = event.touches ? event.touches[0].clientX : event.clientX;
             let clientY = event.touches ? event.touches[0].clientY : event.clientY;
 
-                    if (lastX === undefined || lastY === undefined) {
-                        lastX = clientX;
-                        lastY = clientY;
-                        return;
-                    }
-                
-                    let deltaX = (clientX - lastX) * 0.5;  // Controla velocidad de rotación
-                    let deltaY = (clientY - lastY) * 0.5;
-                
-                    let pos = model.getAttribute("position");
-                    let rot = model.getAttribute("rotation");
-                    let scale = model.getAttribute("scale");
-                
-                    if (mode === "move") {
-                        model.setAttribute("position", `${pos.x + deltaX * 0.01} ${pos.y - deltaY * 0.01} ${pos.z}`);
-                    } else if (mode === "rotate") {
-                        model.setAttribute("rotation", `${rot.x - deltaY} ${rot.y + deltaX} ${rot.z}`);
-                    } else if (mode === "scale") {
-                        let newScale = Math.max(0.2, scale.x + deltaY * 0.01);
-                        model.setAttribute("scale", `${newScale} ${newScale} ${newScale}`);
-                    }
-                
-                    lastX = clientX;
-                    lastY = clientY;
-                }
+            if (lastX === undefined || lastY === undefined) {
+                lastX = clientX;
+                lastY = clientY;
+                return;
+            }
+
+            let deltaX = (clientX - lastX) * 0.5;
+            let deltaY = (clientY - lastY) * 0.5;
+
+            // **Mantener valores anteriores del modelo**
+            let newPos = { x: pos.x, y: pos.y, z: pos.z };
+            let newRot = { x: rot.x, y: rot.y, z: rot.z };
+            let newScale = { x: scale.x, y: scale.y, z: scale.z };
+
+            if (mode === "move") {
+                newPos.x += deltaX * 0.01;
+                newPos.y -= deltaY * 0.01;
+            } else if (mode === "rotate") {
+                newRot.x -= deltaY;
+                newRot.y += deltaX;
+            } else if (mode === "scale") {
+                let scaleFactor = Math.max(0.2, scale.x + deltaY * 0.01);
+                newScale = { x: scaleFactor, y: scaleFactor, z: scaleFactor };
+            }
+
+            // Aplicar cambios al modelo sin reiniciarlo
+            model.setAttribute("position", `${newPos.x} ${newPos.y} ${newPos.z}`);
+            model.setAttribute("rotation", `${newRot.x} ${newRot.y} ${newRot.z}`);
+            model.setAttribute("scale", `${newScale.x} ${newScale.y} ${newScale.z}`);
+
+            // Actualizar valores globales
+            pos = newPos;
+            rot = newRot;
+            scale = newScale;
+
+            lastX = clientX;
+            lastY = clientY;
+        }
+
+        function resetLastTouch() {
+            lastX = undefined;
+            lastY = undefined;
+        }
 
         document.addEventListener("mousemove", handleMove);
         document.addEventListener("touchmove", handleMove);
