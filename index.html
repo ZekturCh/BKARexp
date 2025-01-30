@@ -46,26 +46,55 @@
     <script>
         let model = document.getElementById("model-container");
         let mode = "";
+        let lastX, lastY;
 
         document.getElementById("move-btn").addEventListener("click", () => mode = "move");
         document.getElementById("rotate-btn").addEventListener("click", () => mode = "rotate");
         document.getElementById("scale-btn").addEventListener("click", () => mode = "scale");
 
-        document.addEventListener("mousemove", (event) => {
+        function handleMove(event) {
             if (!mode) return;
-            let x = (event.clientX / window.innerWidth) * 4 - 2;
-            let y = -(event.clientY / window.innerHeight) * 4 + 2;
+
+            let clientX = event.touches ? event.touches[0].clientX : event.clientX;
+            let clientY = event.touches ? event.touches[0].clientY : event.clientY;
+
+            if (lastX === undefined || lastY === undefined) {
+                lastX = clientX;
+                lastY = clientY;
+                return;
+            }
+
+            let deltaX = (clientX - lastX) * 0.01;
+            let deltaY = (clientY - lastY) * 0.01;
+
+            let pos = model.getAttribute("position");
+            let rot = model.getAttribute("rotation");
+            let scale = model.getAttribute("scale");
 
             if (mode === "move") {
-                model.setAttribute("position", `${x} ${y} -2`);
+                model.setAttribute("position", `${pos.x + deltaX} ${pos.y - deltaY} ${pos.z}`);
             } else if (mode === "rotate") {
-                model.setAttribute("rotation", `0 ${x * 180} 0`);
+                model.setAttribute("rotation", `${rot.x} ${rot.y + deltaX * 100} ${rot.z}`);
             } else if (mode === "scale") {
-                let scale = Math.max(0.1, x + 1);
-                model.setAttribute("scale", `${scale} ${scale} ${scale}`);
+                let newScale = Math.max(0.2, scale.x + deltaY);
+                model.setAttribute("scale", `${newScale} ${newScale} ${newScale}`);
             }
-        });
+
+            lastX = clientX;
+            lastY = clientY;
+        }
+
+        function resetLastTouch() {
+            lastX = undefined;
+            lastY = undefined;
+        }
+
+        document.addEventListener("mousemove", handleMove);
+        document.addEventListener("touchmove", handleMove);
+        document.addEventListener("mouseup", resetLastTouch);
+        document.addEventListener("touchend", resetLastTouch);
     </script>
 </body>
 </html>
+
 
