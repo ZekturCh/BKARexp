@@ -52,42 +52,37 @@
         document.getElementById("rotate-btn").addEventListener("click", () => mode = "rotate");
         document.getElementById("scale-btn").addEventListener("click", () => mode = "scale");
 
-        function handleMove(event) {
+       function handleMove(event) {
             if (!mode) return;
 
             let clientX = event.touches ? event.touches[0].clientX : event.clientX;
             let clientY = event.touches ? event.touches[0].clientY : event.clientY;
 
-            if (lastX === undefined || lastY === undefined) {
-                lastX = clientX;
-                lastY = clientY;
-                return;
-            }
-
-            let deltaX = (clientX - lastX) * 0.01;
-            let deltaY = (clientY - lastY) * 0.01;
-
-            let pos = model.getAttribute("position");
-            let rot = model.getAttribute("rotation");
-            let scale = model.getAttribute("scale");
-
-            if (mode === "move") {
-                model.setAttribute("position", `${pos.x + deltaX} ${pos.y - deltaY} ${pos.z}`);
-            } else if (mode === "rotate") {
-                model.setAttribute("rotation", `${rot.x} ${rot.y + deltaX * 100} ${rot.z}`);
-            } else if (mode === "scale") {
-                let newScale = Math.max(0.2, scale.x + deltaY);
-                model.setAttribute("scale", `${newScale} ${newScale} ${newScale}`);
-            }
-
-            lastX = clientX;
-            lastY = clientY;
-        }
-
-        function resetLastTouch() {
-            lastX = undefined;
-            lastY = undefined;
-        }
+                    if (lastX === undefined || lastY === undefined) {
+                        lastX = clientX;
+                        lastY = clientY;
+                        return;
+                    }
+                
+                    let deltaX = (clientX - lastX) * 0.5;  // Controla velocidad de rotación
+                    let deltaY = (clientY - lastY) * 0.5;
+                
+                    let pos = model.getAttribute("position");
+                    let rot = model.getAttribute("rotation");
+                    let scale = model.getAttribute("scale");
+                
+                    if (mode === "move") {
+                        model.setAttribute("position", `${pos.x + deltaX * 0.01} ${pos.y - deltaY * 0.01} ${pos.z}`);
+                    } else if (mode === "rotate") {
+                        model.setAttribute("rotation", `${rot.x - deltaY} ${rot.y + deltaX} ${rot.z}`);
+                    } else if (mode === "scale") {
+                        let newScale = Math.max(0.2, scale.x + deltaY * 0.01);
+                        model.setAttribute("scale", `${newScale} ${newScale} ${newScale}`);
+                    }
+                
+                    lastX = clientX;
+                    lastY = clientY;
+                }
 
         document.addEventListener("mousemove", handleMove);
         document.addEventListener("touchmove", handleMove);
