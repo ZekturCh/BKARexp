@@ -7,7 +7,6 @@
     <script src="https://aframe.io/releases/1.0.4/aframe.min.js"></script>
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
     <script src="https://raw.githack.com/donmccurdy/aframe-extras/master/dist/aframe-extras.loaders.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
         body { margin: 0; overflow: hidden; }
         #buttons {
@@ -54,44 +53,41 @@
         document.getElementById("rotate-btn").addEventListener("click", () => mode = "rotate");
         document.getElementById("scale-btn").addEventListener("click", () => mode = "scale");
 
-       function handleMove(event) {
-    if (!mode) return;
+        function handleMove(event) {
+            if (!mode) return;
 
-    let clientX = event.touches ? event.touches[0].clientX : event.clientX;
-    let clientY = event.touches ? event.touches[0].clientY : event.clientY;
+            let clientX = event.touches ? event.touches[0].clientX : event.clientX;
+            let clientY = event.touches ? event.touches[0].clientY : event.clientY;
 
-    if (lastX === undefined || lastY === undefined) {
-        lastX = clientX;
-        lastY = clientY;
-        return;
-    }
+            if (lastX === undefined || lastY === undefined) {
+                lastX = clientX;
+                lastY = clientY;
+                return;
+            }
 
-    let deltaX = (clientX - lastX) * 0.5;  // Controla velocidad de rotación
-    let deltaY = (clientY - lastY) * 0.5;
+            let deltaX = (clientX - lastX) * 0.5;
+            let deltaY = (clientY - lastY) * 0.5;
 
-    let pos = model.getAttribute("position");
-    let rot = model.getAttribute("rotation");
-    let scale = model.getAttribute("scale");
+            let pos = model.getAttribute("position");
+            let rot = model.getAttribute("rotation");
+            let scale = model.getAttribute("scale");
 
-    if (mode === "move") {
-        model.setAttribute("position", `${pos.x + deltaX * 0.01} ${pos.y - deltaY * 0.01} ${pos.z}`);
-    } else if (mode === "rotate") {
-    let newRotX = rot.x - deltaY; // Rotar en X bajo su propio eje
-    let newRotY = rot.y + deltaX; // Mantiene la rotación en Y
-    
-    // Corregimos el ángulo X para evitar movimientos extraños
-    if (newRotX > 90) newRotX = 90;
-    if (newRotX < -90) newRotX = -90;
+            if (mode === "move") {
+                model.setAttribute("position", `${pos.x + deltaX * 0.01} ${pos.y - deltaY * 0.01} ${pos.z}`);
+            } else if (mode === "rotate") {
+                let newRotX = rot.x - deltaY;
+                let newRotY = rot.y + deltaX;
+                if (newRotX > 90) newRotX = 90;
+                if (newRotX < -90) newRotX = -90;
+                model.setAttribute("rotation", `${newRotX} ${newRotY} ${rot.z}`);
+            } else if (mode === "scale") {
+                let newScale = Math.max(0.2, scale.x + deltaY * 0.01);
+                model.setAttribute("scale", `${newScale} ${newScale} ${newScale}`);
+            }
 
-    model.setAttribute("rotation", `${newRotX} ${newRotY} ${rot.z}`);
-    } else if (mode === "scale") {
-        let newScale = Math.max(0.2, scale.x + deltaY * 0.01);
-        model.setAttribute("scale", `${newScale} ${newScale} ${newScale}`);
-    }
-
-    lastX = clientX;
-    lastY = clientY;
-}
+            lastX = clientX;
+            lastY = clientY;
+        }
 
         function resetLastTouch() {
             lastX = undefined;
@@ -103,47 +99,40 @@
         document.addEventListener("mouseup", resetLastTouch);
         document.addEventListener("touchend", resetLastTouch);
 
-document.getElementById("capture-btn").addEventListener("click", async () => {
-    let scene = document.querySelector("a-scene"); 
-    
-    // Esconder botones antes de la captura
-    document.getElementById("buttons").style.display = "none";
-    document.getElementById("capture-btn").style.display = "none";
+        document.getElementById("capture-btn").addEventListener("click", async () => {
+            let scene = document.querySelector("a-scene");
+            let canvas = scene.renderer.domElement;  // Captura la imagen desde WebGL
 
-    // Captura la escena en un canvas
-    let canvas = await html2canvas(scene, { backgroundColor: null });
+            // Convertir canvas a imagen
+            let imageData = canvas.toDataURL("image/png");
 
-    // Restaurar botones después de la captura
-    document.getElementById("buttons").style.display = "flex";
-    document.getElementById("capture-btn").style.display = "block";
+            // Convertir imagen en archivo para compartir
+            let blob = await (await fetch(imageData)).blob();
+            let file = new File([blob], "captura_ar.png", { type: "image/png" });
 
-    // Convertir el canvas a imagen
-    let imageData = canvas.toDataURL("image/png");
-    
-    // Crear un enlace para descargar la imagen
-    let link = document.createElement("a");
-    link.href = imageData;
-    link.download = "captura_ar.png";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+            try {
+                // Intentar compartir la imagen en redes sociales
+                if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                    await navigator.share({ files: [file], title: "Mira mi AR" });
+                } else {
+                    // Guardar la imagen en la galería del teléfono
+                    let link = document.createElement("a");
+                    link.href = imageData;
+                    link.download = "captura_ar.png";
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                }
 
-    // Intentar guardar en la galería (funciona en algunos navegadores móviles)
-    let blob = await (await fetch(imageData)).blob();
-    let file = new File([blob], "captura_ar.png", { type: "image/png" });
-
-    try {
-        if (navigator.canShare && navigator.canShare({ files: [file] })) {
-            await navigator.share({ files: [file], title: "Mira mi AR" });
-        } else {
-            alert("Tu navegador no permite compartir archivos.");
-        }
-    } catch (err) {
-        console.error("Error al compartir:", err);
-    }
-});
+                // Intentar abrir Instagram directamente
+                setTimeout(() => {
+                    window.location.href = "instagram://story-camera";  // Abre la cámara de historias de Instagram
+                }, 1000);
+            } catch (err) {
+                console.error("Error al compartir:", err);
+                alert("No se pudo compartir la imagen.");
+            }
+        });
     </script>
 </body>
 </html>
-
-
