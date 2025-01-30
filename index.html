@@ -46,6 +46,7 @@
         <button id="move-btn">Mover</button>
         <button id="rotate-btn">Rotar</button>
         <button id="scale-btn">Escalar</button>
+        <button id="switch-camera-btn">Cambiar Cámara</button>
     </div>
 
     <script>
@@ -57,7 +58,29 @@
         let moveBtn = document.getElementById("move-btn");
         let rotateBtn = document.getElementById("rotate-btn");
         let scaleBtn = document.getElementById("scale-btn");
-
+                     let useFrontCamera = false; // Estado de la cámara (false = trasera, true = frontal)
+                    
+                        document.getElementById("switch-camera-btn").addEventListener("click", async () => {
+                            useFrontCamera = !useFrontCamera; // Alternar entre cámaras
+                    
+                            let constraints = {
+                                video: {
+                                    facingMode: useFrontCamera ? "user" : "environment"
+                                }
+                            };
+                    
+                            try {
+                                let stream = await navigator.mediaDevices.getUserMedia(constraints);
+                                let videoTracks = stream.getVideoTracks();
+                                
+                                if (videoTracks.length > 0) {
+                                    let arCamera = document.querySelector("a-scene").components["arjs"].arToolkitContext.arController.ctx;
+                                    arCamera.srcObject = stream;
+                                }
+                            } catch (error) {
+                                console.error("Error al cambiar de cámara:", error);
+                            }
+                        });
         // Función para cambiar modo y actualizar estilos
         function setMode(newMode, button) {
             mode = newMode;
