@@ -27,14 +27,13 @@
             color: white;
             transition: background 0.3s;
         }
-        /* ✅ Estilo del botón activo */
         .active {
-            background: #28a745 !important; /* Verde */
+            background: #28a745 !important;
         }
     </style>
 </head>
 <body>
-    <a-scene embedded arjs>
+    <a-scene embedded arjs vr-mode-ui="enabled: false">
         <a-assets>
             <a-asset-item id="model" src="assets/asset.glb"></a-asset-item>
         </a-assets>
@@ -50,73 +49,61 @@
     </div>
 
     <script>
-        let model = document.getElementById("model-container");
         let mode = "";
         let lastX, lastY;
+        let useFrontCamera = false; // Estado de la cámara
+        let model = document.getElementById("model-container");
 
-        // Guardar referencia a los botones
-        let moveBtn = document.getElementById("move-btn");
-        let rotateBtn = document.getElementById("rotate-btn");
-        let scaleBtn = document.getElementById("scale-btn");
+        document.getElementById("switch-camera-btn").addEventListener("click", () => {
+            useFrontCamera = !useFrontCamera;
+            reloadScene();
+        });
 
-           let useFrontCamera = false; // Estado de la cámara (false = trasera, true = frontal)
-                        
-                            document.getElementById("switch-camera-btn").addEventListener("click", () => {
-                                useFrontCamera = !useFrontCamera; // Alternar entre cámaras
-                        
-                                // 🔥 Recargar la escena con la nueva cámara
-                                reloadScene();
-                            });
-                        
-                            function reloadScene() {
-                                // ✅ Eliminar la escena anterior
-                                let oldScene = document.querySelector("a-scene");
-                                if (oldScene) oldScene.remove();
-                        
-                                // ✅ Crear una nueva escena con el facingMode correcto
-                                let scene = document.createElement("a-scene");
-                                scene.setAttribute("embedded", "");
-                                scene.setAttribute("arjs", `sourceType: webcam; facingMode: ${useFrontCamera ? "user" : "environment"}`);
-                        
-                                // Agregar los elementos dentro de la escena
-                                let assets = document.createElement("a-assets");
-                                let model = document.createElement("a-asset-item");
-                                model.setAttribute("id", "model");
-                                model.setAttribute("src", "assets/asset.glb");
-                                assets.appendChild(model);
-                                scene.appendChild(assets);
-                        
-                                let entity = document.createElement("a-entity");
-                                entity.setAttribute("id", "model-container");
-                                entity.setAttribute("gltf-model", "#model");
-                                entity.setAttribute("position", "0 0 -2");
-                                entity.setAttribute("scale", "1 1 1");
-                                scene.appendChild(entity);
-                        
-                                let camera = document.createElement("a-camera");
-                                camera.setAttribute("position", "0 1.6 0");
-                                scene.appendChild(camera);
-                        
-                                // Agregar la nueva escena al body
-                                document.body.appendChild(scene);
-                            }
+        function reloadScene() {
+            let oldScene = document.querySelector("a-scene");
+            if (oldScene) oldScene.remove();
 
-        // Función para cambiar modo y actualizar estilos
+            let scene = document.createElement("a-scene");
+            scene.setAttribute("embedded", "");
+            scene.setAttribute("arjs", `sourceType: webcam; facingMode: ${useFrontCamera ? "user" : "environment"}`);
+            scene.setAttribute("vr-mode-ui", "enabled: false"); // ❌ Desactivar VR
+
+            let assets = document.createElement("a-assets");
+            let modelAsset = document.createElement("a-asset-item");
+            modelAsset.setAttribute("id", "model");
+            modelAsset.setAttribute("src", "assets/asset.glb");
+            assets.appendChild(modelAsset);
+            scene.appendChild(assets);
+
+            let entity = document.createElement("a-entity");
+            entity.setAttribute("id", "model-container");
+            entity.setAttribute("gltf-model", "#model");
+            entity.setAttribute("position", "0 0 -2");
+            entity.setAttribute("scale", "1 1 1");
+            scene.appendChild(entity);
+
+            let camera = document.createElement("a-camera");
+            camera.setAttribute("position", "0 1.6 0");
+            scene.appendChild(camera);
+
+            document.body.appendChild(scene);
+
+            // ✅ Volver a obtener la referencia del modelo después de recargar la escena
+            model = document.getElementById("model-container");
+        }
+
         function setMode(newMode, button) {
             mode = newMode;
-            // 🔥 Quita la clase "active" de todos los botones
             document.querySelectorAll("#buttons button").forEach(btn => btn.classList.remove("active"));
-            // ✅ Agrega la clase "active" al botón seleccionado
             button.classList.add("active");
         }
 
-        // Asignar eventos a los botones
-        moveBtn.addEventListener("click", () => setMode("move", moveBtn));
-        rotateBtn.addEventListener("click", () => setMode("rotate", rotateBtn));
-        scaleBtn.addEventListener("click", () => setMode("scale", scaleBtn));
+        document.getElementById("move-btn").addEventListener("click", () => setMode("move", moveBtn));
+        document.getElementById("rotate-btn").addEventListener("click", () => setMode("rotate", rotateBtn));
+        document.getElementById("scale-btn").addEventListener("click", () => setMode("scale", scaleBtn));
 
         function handleMove(event) {
-            if (!mode) return;
+            if (!mode || !model) return;
 
             let clientX = event.touches ? event.touches[0].clientX : event.clientX;
             let clientY = event.touches ? event.touches[0].clientY : event.clientY;
