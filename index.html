@@ -3,53 +3,68 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AR con Marcador Virtual</title>
+    <title>AR - Manipulación de Modelo 3D</title>
     <script src="https://aframe.io/releases/1.0.4/aframe.min.js"></script>
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
     <script src="https://raw.githack.com/donmccurdy/aframe-extras/master/dist/aframe-extras.loaders.min.js"></script>
     <style>
         body { margin: 0; overflow: hidden; }
-        #marker { 
-            position: absolute; 
-            width: 150px; 
-            height: 150px; 
-            background: url('https://via.placeholder.com/150') no-repeat center center / cover;
-            cursor: grab;
+        #buttons {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 10px;
+        }
+        button {
+            padding: 10px 15px;
+            font-size: 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            background: #007bff;
+            color: white;
         }
     </style>
 </head>
 <body>
-    <div id="marker"></div>
     <a-scene embedded arjs>
         <a-assets>
-            <a-asset-item id="animated-asset" src="assets/asset.glb"></a-asset-item>
+            <a-asset-item id="model" src="assets/asset.glb"></a-asset-item>
         </a-assets>
-        <a-entity id="model" gltf-model="#animated-asset" position="0 0 -2" scale="0.5 0.5 0.5"></a-entity>
+        <a-entity id="model-container" gltf-model="#model" position="0 0 -2" scale="1 1 1"></a-entity>
+        <a-camera position="0 1.6 0"></a-camera>
     </a-scene>
 
-    <script>
-        let marker = document.getElementById("marker");
-        let model = document.getElementById("model");
-        let offsetX, offsetY, isDragging = false;
+    <div id="buttons">
+        <button id="move-btn">Mover</button>
+        <button id="rotate-btn">Rotar</button>
+        <button id="scale-btn">Escalar</button>
+    </div>
 
-        marker.addEventListener("mousedown", (e) => {
-            isDragging = true;
-            offsetX = e.clientX - marker.offsetLeft;
-            offsetY = e.clientY - marker.offsetTop;
+    <script>
+        let model = document.getElementById("model-container");
+        let mode = "";
+
+        document.getElementById("move-btn").addEventListener("click", () => mode = "move");
+        document.getElementById("rotate-btn").addEventListener("click", () => mode = "rotate");
+        document.getElementById("scale-btn").addEventListener("click", () => mode = "scale");
+
+        document.addEventListener("mousemove", (event) => {
+            if (!mode) return;
+            let x = (event.clientX / window.innerWidth) * 4 - 2;
+            let y = -(event.clientY / window.innerHeight) * 4 + 2;
+
+            if (mode === "move") {
+                model.setAttribute("position", `${x} ${y} -2`);
+            } else if (mode === "rotate") {
+                model.setAttribute("rotation", `0 ${x * 180} 0`);
+            } else if (mode === "scale") {
+                let scale = Math.max(0.1, x + 1);
+                model.setAttribute("scale", `${scale} ${scale} ${scale}`);
+            }
         });
-        
-        document.addEventListener("mousemove", (e) => {
-            if (!isDragging) return;
-            let x = e.clientX - offsetX;
-            let y = e.clientY - offsetY;
-            marker.style.left = `${x}px`;
-            marker.style.top = `${y}px`;
-            let normalizedX = (x / window.innerWidth) * 4 - 2;
-            let normalizedY = (y / window.innerHeight) * -2 + 1;
-            model.setAttribute("position", `${normalizedX} ${normalizedY} -2`);
-        });
-        
-        document.addEventListener("mouseup", () => isDragging = false);
     </script>
 </body>
 </html>
