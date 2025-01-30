@@ -41,6 +41,7 @@
         <button id="move-btn">Mover</button>
         <button id="rotate-btn">Rotar</button>
         <button id="scale-btn">Escalar</button>
+        <button id="capture-btn">📸 Capturar</button>
     </div>
 
     <script>
@@ -100,6 +101,46 @@
         document.addEventListener("touchmove", handleMove);
         document.addEventListener("mouseup", resetLastTouch);
         document.addEventListener("touchend", resetLastTouch);
+
+document.getElementById("capture-btn").addEventListener("click", async () => {
+    let scene = document.querySelector("a-scene"); 
+    
+    // Esconder botones antes de la captura
+    document.getElementById("buttons").style.display = "none";
+    document.getElementById("capture-btn").style.display = "none";
+
+    // Captura la escena en un canvas
+    let canvas = await html2canvas(scene, { backgroundColor: null });
+
+    // Restaurar botones después de la captura
+    document.getElementById("buttons").style.display = "flex";
+    document.getElementById("capture-btn").style.display = "block";
+
+    // Convertir el canvas a imagen
+    let imageData = canvas.toDataURL("image/png");
+    
+    // Crear un enlace para descargar la imagen
+    let link = document.createElement("a");
+    link.href = imageData;
+    link.download = "captura_ar.png";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    // Intentar guardar en la galería (funciona en algunos navegadores móviles)
+    let blob = await (await fetch(imageData)).blob();
+    let file = new File([blob], "captura_ar.png", { type: "image/png" });
+
+    try {
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            await navigator.share({ files: [file], title: "Mira mi AR" });
+        } else {
+            alert("Tu navegador no permite compartir archivos.");
+        }
+    } catch (err) {
+        console.error("Error al compartir:", err);
+    }
+});
     </script>
 </body>
 </html>
