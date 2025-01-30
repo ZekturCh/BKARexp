@@ -1,41 +1,55 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AR con Marcador Virtual</title>
     <script src="https://aframe.io/releases/1.0.4/aframe.min.js"></script>
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
     <script src="https://raw.githack.com/donmccurdy/aframe-extras/master/dist/aframe-extras.loaders.min.js"></script>
-    <script src="https://raw.githack.com/AR-js-org/studio-backend/master/src/modules/marker/tools/gesture-detector.js"></script>
-    <script src="https://raw.githack.com/AR-js-org/studio-backend/master/src/modules/marker/tools/gesture-handler.js"></script>
+    <style>
+        body { margin: 0; overflow: hidden; }
+        #marker { 
+            position: absolute; 
+            width: 150px; 
+            height: 150px; 
+            background: url('https://via.placeholder.com/150') no-repeat center center / cover;
+            cursor: grab;
+        }
+    </style>
 </head>
-<body style="margin: 0; overflow: hidden;">
-    <a-scene
-        vr-mode-ui="enabled: false;"
-        loading-screen="enabled: false;"
-        renderer="logarithmicDepthBuffer: true;"
-        arjs="trackingMethod: best; sourceType: webcam; debugUIEnabled: false;"
-        embedded
-        gesture-detector
-    >
+<body>
+    <div id="marker"></div>
+    <a-scene embedded arjs>
         <a-assets>
-            <a-asset-item
-                id="animated-asset"
-                src="assets/asset.glb"
-            ></a-asset-item>
+            <a-asset-item id="animated-asset" src="assets/asset.glb"></a-asset-item>
         </a-assets>
-
-        <!-- Modelo 3D sin marcador, aparece en el centro y manipulable con gestos -->
-        <a-entity
-            id="bowser-model"
-            scale="0.5 0.5 0.5"
-            position="0 0 -2"
-            rotation="0 0 0"
-            animation-mixer="loop: repeat"
-            gltf-model="#animated-asset"
-            class="clickable"
-            gesture-handler
-        ></a-entity>
-
-        <a-entity camera></a-entity>
+        <a-entity id="model" gltf-model="#animated-asset" position="0 0 -2" scale="0.5 0.5 0.5"></a-entity>
     </a-scene>
+
+    <script>
+        let marker = document.getElementById("marker");
+        let model = document.getElementById("model");
+        let offsetX, offsetY, isDragging = false;
+
+        marker.addEventListener("mousedown", (e) => {
+            isDragging = true;
+            offsetX = e.clientX - marker.offsetLeft;
+            offsetY = e.clientY - marker.offsetTop;
+        });
+        
+        document.addEventListener("mousemove", (e) => {
+            if (!isDragging) return;
+            let x = e.clientX - offsetX;
+            let y = e.clientY - offsetY;
+            marker.style.left = `${x}px`;
+            marker.style.top = `${y}px`;
+            let normalizedX = (x / window.innerWidth) * 4 - 2;
+            let normalizedY = (y / window.innerHeight) * -2 + 1;
+            model.setAttribute("position", `${normalizedX} ${normalizedY} -2`);
+        });
+        
+        document.addEventListener("mouseup", () => isDragging = false);
+    </script>
 </body>
 </html>
