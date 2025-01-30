@@ -26,6 +26,12 @@
             background: #007bff;
             color: white;
         }
+        a-canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 1;
+}
     </style>
 </head>
 <body>
@@ -42,6 +48,7 @@
         <button id="rotate-btn">Rotar</button>
         <button id="scale-btn">Escalar</button>
         <button id="capture-btn">📸 Capturar</button>
+        <button id="switch-camera">↔ Cámara</button>
     </div>
 
     <script>
@@ -133,6 +140,51 @@
                 alert("No se pudo compartir la imagen.");
             }
         });
+
+        let currentFacingMode = 'environment';
+
+// Configurar cámara frontal
+async function switchCamera() {
+    currentFacingMode = currentFacingMode === 'environment' ? 'user' : 'environment';
+    
+    // Detener stream actual
+    if (videoStream) {
+        videoStream.getTracks().forEach(track => track.stop());
+    }
+    
+    // Nuevo elemento de escena
+    const newScene = document.createElement('a-scene');
+    newScene.innerHTML = `
+        <a-assets>
+            <a-asset-item id="model" src="assets/asset.glb"></a-asset-item>
+        </a-assets>
+        <a-entity id="model-container" 
+                 gltf-model="#model" 
+                 position="0 0 -2" 
+                 scale="${currentFacingMode === 'user' ? '-1 1 1' : '1 1 1'}">
+        </a-entity>
+        <a-camera position="0 1.6 0"></a-camera>
+    `;
+    
+    // Configurar AR.js con nueva cámara
+    newScene.setAttribute('embedded', '');
+    newScene.setAttribute('arjs', `sourceType: webcam; facingMode: ${currentFacingMode}`);
+    
+    // Reemplazar escena
+    const oldScene = document.querySelector('a-scene');
+    oldScene.parentNode.replaceChild(newScene, oldScene);
+    
+    // Restablecer listeners
+    initializeScene();
+}
+
+document.getElementById("switch-camera").addEventListener("click", switchCamera);
+
+// Función para reiniciar listeners
+function initializeScene() {
+    model = document.getElementById("model-container");
+    // Resto de inicializaciones...
+}
     </script>
 </body>
 </html>
