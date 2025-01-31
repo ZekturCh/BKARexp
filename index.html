@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AR - Manipulación de Modelo 3D</title>
+    <title>Hamburguesa 3D</title>
     <script src="https://aframe.io/releases/1.0.4/aframe.min.js"></script>
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
     <script src="https://raw.githack.com/donmccurdy/aframe-extras/master/dist/aframe-extras.loaders.min.js"></script>
@@ -33,7 +33,7 @@
     </style>
 </head>
 <body>
-    <a-scene id="scene" embedded arjs="sourceType: webcam; facingMode: environment;">
+    <a-scene id="scene" embedded arjs="sourceType: webcam; facingMode: environment;"  vr-mode-ui="enabled: false">
         <a-assets>
             <a-asset-item id="model" src="assets/asset.glb"></a-asset-item>
         </a-assets>
@@ -45,20 +45,18 @@
         <button id="move-btn">Mover</button>
         <button id="rotate-btn">Rotar</button>
         <button id="scale-btn">Escalar</button>
-        <button id="switch-camera-btn">Cambiar Cámara</button>
     </div>
 
     <script>
         let model = document.getElementById("model-container");
         let mode = "";
         let lastX, lastY;
-        let useFrontCamera = false; // Estado de la cámara (false = trasera, true = frontal)
+        let useFrontCamera = true; // Estado de la cámara (false = trasera, true = frontal)
 
         // Guardar referencia a los botones
         let moveBtn = document.getElementById("move-btn");
         let rotateBtn = document.getElementById("rotate-btn");
         let scaleBtn = document.getElementById("scale-btn");
-        let switchCameraBtn = document.getElementById("switch-camera-btn");
 
         // ✅ Función para cambiar de cámara sin borrar la escena
         switchCameraBtn.addEventListener("click", () => {
