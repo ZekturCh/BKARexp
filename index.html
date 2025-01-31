@@ -45,7 +45,6 @@
         <button id="move-btn">Mover</button>
         <button id="rotate-btn">Rotar</button>
         <button id="scale-btn">Escalar</button>
-        <button id="switch-camera-btn">Cambiar Cámara</button>
     </div>
 
     <script>
@@ -58,14 +57,8 @@
         let moveBtn = document.getElementById("move-btn");
         let rotateBtn = document.getElementById("rotate-btn");
         let scaleBtn = document.getElementById("scale-btn");
-        let switchCameraBtn = document.getElementById("switch-camera-btn");
 
-        // ✅ Función para cambiar de cámara sin borrar la escena
-        switchCameraBtn.addEventListener("click", () => {
-            useFrontCamera = !useFrontCamera; // Alternar entre cámaras
-            let scene = document.getElementById("scene");
-            scene.setAttribute("arjs", `sourceType: webcam; facingMode: ${useFrontCamera ? "user" : "environment"}`);
-        });
+        
 
         // ✅ Función para cambiar modo y actualizar estilos
         function setMode(newMode, button) {
