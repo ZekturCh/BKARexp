@@ -25,15 +25,11 @@
             cursor: pointer;
             background: #007bff;
             color: white;
-            transition: background 0.3s;
-        }
-        .active {
-            background: #28a745 !important; /* Verde */
         }
     </style>
 </head>
 <body>
-    <a-scene id="scene" embedded arjs="sourceType: webcam; facingMode: environment;">
+    <a-scene embedded arjs>
         <a-assets>
             <a-asset-item id="model" src="assets/asset.glb"></a-asset-item>
         </a-assets>
@@ -45,41 +41,21 @@
         <button id="move-btn">Mover</button>
         <button id="rotate-btn">Rotar</button>
         <button id="scale-btn">Escalar</button>
-        <button id="switch-camera-btn">Cambiar Cámara</button>
     </div>
 
     <script>
         let model = document.getElementById("model-container");
         let mode = "";
         let lastX, lastY;
-        let useFrontCamera = false; // Estado de la cámara (false = trasera, true = frontal)
 
-        // Guardar referencia a los botones
-        let moveBtn = document.getElementById("move-btn");
-        let rotateBtn = document.getElementById("rotate-btn");
-        let scaleBtn = document.getElementById("scale-btn");
-        let switchCameraBtn = document.getElementById("switch-camera-btn");
+        // Obtener valores iniciales del modelo
+        let pos = model.getAttribute("position");
+        let rot = model.getAttribute("rotation");
+        let scale = model.getAttribute("scale");
 
-        // ✅ Función para cambiar de cámara sin borrar la escena
-        switchCameraBtn.addEventListener("click", () => {
-            useFrontCamera = !useFrontCamera; // Alternar entre cámaras
-            let scene = document.getElementById("scene");
-            scene.setAttribute("arjs", `sourceType: webcam; facingMode: ${useFrontCamera ? "user" : "environment"}`);
-        });
-
-        // ✅ Función para cambiar modo y actualizar estilos
-        function setMode(newMode, button) {
-            mode = newMode;
-            // 🔥 Quita la clase "active" de todos los botones
-            document.querySelectorAll("#buttons button").forEach(btn => btn.classList.remove("active"));
-            // ✅ Agrega la clase "active" al botón seleccionado
-            button.classList.add("active");
-        }
-
-        // Asignar eventos a los botones
-        moveBtn.addEventListener("click", () => setMode("move", moveBtn));
-        rotateBtn.addEventListener("click", () => setMode("rotate", rotateBtn));
-        scaleBtn.addEventListener("click", () => setMode("scale", scaleBtn));
+        document.getElementById("move-btn").addEventListener("click", () => mode = "move");
+        document.getElementById("rotate-btn").addEventListener("click", () => mode = "rotate");
+        document.getElementById("scale-btn").addEventListener("click", () => mode = "scale");
 
         function handleMove(event) {
             if (!mode) return;
@@ -96,18 +72,31 @@
             let deltaX = (clientX - lastX) * 0.5;
             let deltaY = (clientY - lastY) * 0.5;
 
-            let pos = model.getAttribute("position");
-            let rot = model.getAttribute("rotation");
-            let scale = model.getAttribute("scale");
+            // *Mantener valores anteriores del modelo*
+            let newPos = { x: pos.x, y: pos.y, z: pos.z };
+            let newRot = { x: rot.x, y: rot.y, z: rot.z };
+            let newScale = { x: scale.x, y: scale.y, z: scale.z };
 
             if (mode === "move") {
-                model.setAttribute("position", `${pos.x + deltaX * 0.01} ${pos.y - deltaY * 0.01} ${pos.z}`);
+                newPos.x += deltaX * 0.01;
+                newPos.y -= deltaY * 0.01;
             } else if (mode === "rotate") {
-                model.setAttribute("rotation", `${rot.x - deltaY} ${rot.y + deltaX} ${rot.z}`);
+                newRot.x -= deltaY;
+                newRot.y += deltaX;
             } else if (mode === "scale") {
-                let newScale = Math.max(0.2, scale.x + deltaY * 0.01);
-                model.setAttribute("scale", `${newScale} ${newScale} ${newScale}`);
+                let scaleFactor = Math.max(0.2, scale.x + deltaY * 0.01);
+                newScale = { x: scaleFactor, y: scaleFactor, z: scaleFactor };
             }
+
+            // Aplicar cambios al modelo sin reiniciarlo
+            model.setAttribute("position", ${newPos.x} ${newPos.y} ${newPos.z});
+            model.setAttribute("rotation", ${newRot.x} ${newRot.y} ${newRot.z});
+            model.setAttribute("scale", ${newScale.x} ${newScale.y} ${newScale.z});
+
+            // Actualizar valores globales
+            pos = newPos;
+            rot = newRot;
+            scale = newScale;
 
             lastX = clientX;
             lastY = clientY;
@@ -125,5 +114,3 @@
     </script>
 </body>
 </html>
-
-
