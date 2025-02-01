@@ -13,7 +13,7 @@
     <script>
         async function verificarCodigo() {
             let codigoIngresado = document.getElementById("codigoInput").value.toUpperCase();
-            let response = await fetch("codes.json");
+            let response = await fetch("data/codes.json");
             let codes = await response.json();
 
             if (codes[codigoIngresado]) {
