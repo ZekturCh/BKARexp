@@ -22,6 +22,17 @@
                 alert("Código no válido");
             }
         }
+function validarCodigo() {
+    let codigoIngresado = document.getElementById("codigo").value;
+    let codigosValidos = ["ABC123", "XYZ789", "TEST456"]; // Lista de códigos válidos
+
+    if (codigosValidos.includes(codigoIngresado)) {
+        sessionStorage.setItem("accesoPermitido", "true"); // Guarda el acceso en sessionStorage
+        window.location.href = "ar.html"; // Redirige a la página de AR
+    } else {
+        alert("Código incorrecto. Inténtalo de nuevo.");
+    }
+}
     </script>
 </body>
 </html>
