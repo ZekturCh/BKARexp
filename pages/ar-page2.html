@@ -48,6 +48,12 @@
     </div>
 
     <script>
+window.onload = function () {
+            if (sessionStorage.getItem("accesoPermitido") !== "true") {
+                alert("Acceso denegado. Primero ingresa un código válido.");
+                window.location.href = "index.html"; // Redirige a la página de registro
+            }
+        };
         let model = document.getElementById("model-container");
         let mode = "";
         let lastX, lastY;
