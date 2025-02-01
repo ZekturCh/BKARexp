@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro de Código</title>
+</head>
+<body>
+    <h2>Ingresa tu Código</h2>
+    <input type="text" id="codigoInput" placeholder="Ingresa tu código">
+    <button onclick="verificarCodigo()">Verificar</button>
+
+    <script>
+        async function verificarCodigo() {
+            let codigoIngresado = document.getElementById("codigoInput").value.toUpperCase();
+            let response = await fetch("codes.json");
+            let codes = await response.json();
+
+            if (codes[codigoIngresado]) {
+                window.location.href = codes[codigoIngresado];
+            } else {
+                alert("Código no válido");
+            }
+        }
+    </script>
+</body>
+</html>
