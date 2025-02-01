@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AR - Manipulación de Modelo 3D</title>
+    <script src="https://aframe.io/releases/1.0.4/aframe.min.js"></script>
+    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+    <script src="https://raw.githack.com/donmccurdy/aframe-extras/master/dist/aframe-extras.loaders.min.js"></script>
+    <style>
+        body { margin: 0; overflow: hidden; }
+        #buttons {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 10px;
+        }
+        button {
+            padding: 10px 15px;
+            font-size: 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            background: #007bff;
+            color: white;
+            transition: background 0.3s;
+        }
+        .active {
+            background: #28a745 !important; /* Verde */
+        }
+    </style>
+</head>
+<body>
+    <a-scene id="scene" embedded arjs="sourceType: webcam; facingMode: user;">
+        <a-assets>
+            <a-asset-item id="model" src="assets/asset3.glb"></a-asset-item>
+        </a-assets>
+        <a-entity id="model-container" gltf-model="#model" position="0 0 -2" scale="1 1 1"></a-entity>
+        <a-camera position="0 1.6 0"></a-camera>
+    </a-scene>
+
+    <div id="buttons">
+        <button id="move-btn">Mover</button>
+        <button id="rotate-btn">Rotar</button>
+        <button id="scale-btn">Escalar</button>
+    </div>
+
+    <script>
+        let model = document.getElementById("model-container");
+        let mode = "";
+        let lastX, lastY;
+        let useFrontCamera = false; // Estado de la cámara (false = trasera, true = frontal)
+
+        // Guardar referencia a los botones
+        let moveBtn = document.getElementById("move-btn");
+        let rotateBtn = document.getElementById("rotate-btn");
+        let scaleBtn = document.getElementById("scale-btn");
+
+        
+
+        // ✅ Función para cambiar modo y actualizar estilos
+        function setMode(newMode, button) {
+            mode = newMode;
+            // 🔥 Quita la clase "active" de todos los botones
+            document.querySelectorAll("#buttons button").forEach(btn => btn.classList.remove("active"));
+            // ✅ Agrega la clase "active" al botón seleccionado
+            button.classList.add("active");
+        }
+
+        // Asignar eventos a los botones
+        moveBtn.addEventListener("click", () => setMode("move", moveBtn));
+        rotateBtn.addEventListener("click", () => setMode("rotate", rotateBtn));
+        scaleBtn.addEventListener("click", () => setMode("scale", scaleBtn));
+
+        function handleMove(event) {
+            if (!mode) return;
+
+            let clientX = event.touches ? event.touches[0].clientX : event.clientX;
+            let clientY = event.touches ? event.touches[0].clientY : event.clientY;
+
+            if (lastX === undefined || lastY === undefined) {
+                lastX = clientX;
+                lastY = clientY;
+                return;
+            }
+
+            let deltaX = (clientX - lastX) * 0.5;
+            let deltaY = (clientY - lastY) * 0.5;
+
+            let pos = model.getAttribute("position");
+            let rot = model.getAttribute("rotation");
+            let scale = model.getAttribute("scale");
+
+            if (mode === "move") {
+                model.setAttribute("position", `${pos.x + deltaX * 0.01} ${pos.y - deltaY * 0.01} ${pos.z}`);
+            } else if (mode === "rotate") {
+                model.setAttribute("rotation", `${rot.x - deltaY} ${rot.y + deltaX} ${rot.z}`);
+            } else if (mode === "scale") {
+                let newScale = Math.max(0.2, scale.x + deltaY * 0.01);
+                model.setAttribute("scale", `${newScale} ${newScale} ${newScale}`);
+            }
+
+            lastX = clientX;
+            lastY = clientY;
+        }
+
+        function resetLastTouch() {
+            lastX = undefined;
+            lastY = undefined;
+        }
+
+        document.addEventListener("mousemove", handleMove);
+        document.addEventListener("touchmove", handleMove);
+        document.addEventListener("mouseup", resetLastTouch);
+        document.addEventListener("touchend", resetLastTouch);
+    </script>
+</body>
+</html>
