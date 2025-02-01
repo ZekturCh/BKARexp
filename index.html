@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
@@ -13,26 +13,27 @@
     <script>
         async function verificarCodigo() {
             let codigoIngresado = document.getElementById("codigoInput").value.toUpperCase();
-            let response = await fetch("data/codes.json");
-            let codes = await response.json();
+            
+            try {
+                let response = await fetch("data/codes.json");
+                
+                if (!response.ok) {
+                    throw new Error("No se pudo cargar el archivo codes.json");
+                }
 
-            if (codes[codigoIngresado]) {
-                window.location.href = codes[codigoIngresado];
-            } else {
-                alert("Código no válido");
+                let codes = await response.json();
+
+                if (codes[codigoIngresado]) {
+                    sessionStorage.setItem("accesoPermitido", "true"); // Guarda el acceso en sessionStorage
+                    window.location.href = codes[codigoIngresado]; // Redirige a la página correspondiente
+                } else {
+                    alert("Código no válido");
+                }
+            } catch (error) {
+                console.error("Error al cargar el archivo JSON:", error);
+                alert("Hubo un problema al verificar el código. Inténtalo más tarde.");
             }
         }
-function validarCodigo() {
-    let codigoIngresado = document.getElementById("codigo").value;
-    let codigosValidos = ["ABC123", "XYZ789", "TEST456"]; // Lista de códigos válidos
-
-    if (codigosValidos.includes(codigoIngresado)) {
-        sessionStorage.setItem("accesoPermitido", "true"); // Guarda el acceso en sessionStorage
-        window.location.href = "ar.html"; // Redirige a la página de AR
-    } else {
-        alert("Código incorrecto. Inténtalo de nuevo.");
-    }
-}
     </script>
 </body>
 </html>
