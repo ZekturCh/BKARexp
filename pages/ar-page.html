@@ -50,6 +50,72 @@
     </div>
 
    <script>
+async function takeScreenshot() {
+    let scene = document.querySelector("a-scene");
+    let rendererCanvas = scene.renderer.domElement; // WebGL Canvas
+    let arCanvas = scene.querySelector("canvas"); // AR.js Canvas
+
+    // Create a new canvas to merge images
+    let finalCanvas = document.createElement("canvas");
+    let ctx = finalCanvas.getContext("2d");
+    finalCanvas.width = rendererCanvas.width;
+    finalCanvas.height = rendererCanvas.height;
+
+    try {
+        let img1 = await loadImage(rendererCanvas.toDataURL("image/png"));
+        let img2 = await loadImage(arCanvas.toDataURL("image/png"));
+
+        ctx.drawImage(img2, 0, 0); // Draw AR canvas
+        ctx.drawImage(img1, 0, 0); // Draw WebGL scene
+
+        let finalImage = finalCanvas.toDataURL("image/png");
+        downloadAndShare(finalImage);
+    } catch (error) {
+        console.error("Screenshot failed:", error);
+    }
+}
+
+// Helper to load an image from Data URL
+function loadImage(dataUrl) {
+    return new Promise((resolve, reject) => {
+        let img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = reject;
+        img.src = dataUrl;
+    });
+}
+
+// Download and share the final screenshot
+function downloadAndShare(imgData) {
+    let link = document.createElement("a");
+    link.href = imgData;
+    link.download = "screenshot.png";
+    link.click();
+
+    if (navigator.share) {
+        navigator.share({
+            title: "AR Screenshot",
+            text: "Check out this AR capture!",
+            files: [new File([dataURItoBlob(imgData)], "screenshot.png", { type: "image/png" })]
+        }).catch(console.error);
+    } else {
+        alert("Screenshot saved! Share it manually.");
+    }
+}
+
+// Convert Data URL to Blob
+function dataURItoBlob(dataURI) {
+    let byteString = atob(dataURI.split(",")[1]);
+    let mimeString = dataURI.split(",")[0].split(":")[1].split(";")[0];
+    let ab = new ArrayBuffer(byteString.length);
+    let ia = new Uint8Array(ab);
+    for (let i = 0; i < byteString.length; i++) {
+        ia[i] = byteString.charCodeAt(i);
+    }
+    return new Blob([ab], { type: mimeString });
+}
+
+document.getElementById("capture-btn").addEventListener("click", takeScreenshot);
     let model = document.getElementById("model-container");
     let mode = "";
     let lastX, lastY;
@@ -106,82 +172,6 @@
         return /iPad|iPhone|iPod/.test(navigator.userAgent);
     }
 
-    async function captureScreen() {
-        let scene = document.querySelector("a-scene");
-        let canvas = scene.renderer.domElement;
-        let buttons = document.getElementById("buttons");
-
-        // Ocultar botones para que no salgan en la imagen
-        buttons.style.display = "none";
-
-        try {
-            let imgData;
-            
-            // Intentamos capturar desde WebGL
-            imgData = canvas.toDataURL("image/png");
-
-            // Si la imagen capturada es negra o vacía, intentamos con html2canvas
-            if (imgData.length < 1000 || isIOS()) {
-                console.log("WebGL falló, usando html2canvas...");
-                imgData = await captureWithHtml2Canvas();
-            }
-
-            shareImage(imgData);
-        } catch (err) {
-            console.error("Error capturando la pantalla:", err);
-        } finally {
-            // Volvemos a mostrar los botones
-            buttons.style.display = "flex";
-        }
-    }
-
-    function captureWithHtml2Canvas() {
-        return new Promise((resolve, reject) => {
-            html2canvas(document.body, {
-                useCORS: true,
-                backgroundColor: null,
-                logging: false,
-                onclone: (clonedDoc) => {
-                    // Aseguramos que el WebGL está renderizado antes de capturar
-                    clonedDoc.querySelector("a-scene").style.visibility = "visible";
-                }
-            }).then(canvas => {
-                resolve(canvas.toDataURL("image/png"));
-            }).catch(err => reject(err));
-        });
-    }
-
-    function shareImage(imgData) {
-        let link = document.createElement("a");
-        link.href = imgData;
-        link.download = "captura.png";
-        link.click();
-
-        if (navigator.share) {
-            navigator.share({
-                title: "Captura de AR",
-                text: "Mira esta imagen de Realidad Aumentada",
-                files: [
-                    new File([dataURItoBlob(imgData)], "captura.png", { type: "image/png" })
-                ]
-            }).catch(err => console.log("Error compartiendo:", err));
-        } else {
-            alert("Descarga la imagen y compártela manualmente.");
-        }
-    }
-
-    function dataURItoBlob(dataURI) {
-        let byteString = atob(dataURI.split(",")[1]);
-        let mimeString = dataURI.split(",")[0].split(":")[1].split(";")[0];
-        let ab = new ArrayBuffer(byteString.length);
-        let ia = new Uint8Array(ab);
-        for (let i = 0; i < byteString.length; i++) {
-            ia[i] = byteString.charCodeAt(i);
-        }
-        return new Blob([ab], { type: mimeString });
-    }
-
-    document.getElementById("capture-btn").addEventListener("click", captureScreen);
 </script>
 </body>
 </html>
