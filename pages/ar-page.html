@@ -49,7 +49,7 @@
         <button id="capture-btn">📷 Capturar</button>
     </div>
 
-    <script>
+   <script>
     let model = document.getElementById("model-container");
     let mode = "";
     let lastX, lastY;
@@ -102,38 +102,33 @@
     document.addEventListener("mouseup", resetLastTouch);
     document.addEventListener("touchend", resetLastTouch);
 
-    // Detectar si el usuario usa iOS
     function isIOS() {
         return /iPad|iPhone|iPod/.test(navigator.userAgent);
     }
 
-    // Capturar la pantalla
     function captureScreen() {
-        if (isIOS()) {
-            captureWithHTML2Canvas();
-        } else {
-            captureWithCanvas();
-        }
-    }
-
-    // Método para capturar usando WebGL (Android y PC)
-    function captureWithCanvas() {
         let scene = document.querySelector("a-scene");
         let canvas = scene.renderer.domElement;
-        let imgData = canvas.toDataURL("image/png");
 
-        shareImage(imgData);
-    }
+        if (canvas) {
+            // Intentar capturar desde WebGL
+            let imgData = canvas.toDataURL("image/png");
+            if (imgData.length > 1000) {
+                shareImage(imgData);
+                return;
+            }
+        }
 
-    // Método alternativo para iOS (Safari y Chrome)
-    function captureWithHTML2Canvas() {
-        html2canvas(document.body).then(canvas => {
+        // Si la captura con WebGL falla, usar html2canvas
+        html2canvas(document.body, {
+            logging: false,
+            useCORS: true
+        }).then(canvas => {
             let imgData = canvas.toDataURL("image/png");
             shareImage(imgData);
         });
     }
 
-    // Compartir en redes sociales
     function shareImage(imgData) {
         let link = document.createElement("a");
         link.href = imgData;
@@ -153,7 +148,6 @@
         }
     }
 
-    // Convertir dataURI a Blob para compartir en iOS
     function dataURItoBlob(dataURI) {
         let byteString = atob(dataURI.split(",")[1]);
         let mimeString = dataURI.split(",")[0].split(":")[1].split(";")[0];
@@ -167,7 +161,6 @@
 
     document.getElementById("capture-btn").addEventListener("click", captureScreen);
 </script>
-
 </body>
 </html>
 
