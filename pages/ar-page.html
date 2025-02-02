@@ -97,30 +97,49 @@
         document.addEventListener("mouseup", resetLastTouch);
         document.addEventListener("touchend", resetLastTouch);
 
-       function captureScreen() {
-    let scene = document.querySelector("a-scene");
-    let canvas = scene.renderer.domElement;
+       async function captureScreen() {
+    try {
+        const stream = await navigator.mediaDevices.getDisplayMedia({
+            video: { mediaSource: "screen" }
+        });
 
-    // 🔹 Forzar redibujado antes de capturar
-    scene.renderer.render(scene.object3D, scene.camera);
+        const track = stream.getVideoTracks()[0];
+        const imageCapture = new ImageCapture(track);
+        const bitmap = await imageCapture.grabFrame();
+        track.stop(); // Detener la captura
 
-    setTimeout(() => {
-        let imgData = canvas.toDataURL("image/png");
-        
-        let link = document.createElement("a");
-        link.href = imgData;
-        link.download = "captura.png";
-        link.click();
+        // Convertir bitmap a imagen PNG
+        const canvas = document.createElement("canvas");
+        canvas.width = bitmap.width;
+        canvas.height = bitmap.height;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(bitmap, 0, 0, bitmap.width, bitmap.height);
 
-        if (navigator.share) {
-            navigator.share({
-                title: "Captura de AR",
-                text: "Mira esta imagen de Realidad Aumentada",
-                files: [new File([dataURItoBlob(imgData)], "captura.png", { type: "image/png" })]
-            });
-        }
-    }, 100); // ⏳ Esperamos 100ms antes de capturar
+        // Convertir a Blob para compartir
+        canvas.toBlob(blob => {
+            const file = new File([blob], "captura.png", { type: "image/png" });
+
+            // Descargar la imagen
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = "captura.png";
+            link.click();
+
+            // Compartir la imagen
+            if (navigator.share) {
+                navigator.share({
+                    title: "Captura de AR",
+                    text: "Mira esta imagen de Realidad Aumentada",
+                    files: [file]
+                }).catch(console.error);
+            }
+        }, "image/png");
+    } catch (err) {
+        console.error("Error al capturar la pantalla:", err);
+    }
 }
+
+document.getElementById("capture-btn").addEventListener("click", captureScreen);
         function dataURItoBlob(dataURI) {
             let byteString = atob(dataURI.split(",")[1]);
             let mimeString = dataURI.split(",")[0].split(":")[1].split(";")[0];
