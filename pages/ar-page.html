@@ -55,39 +55,45 @@
     </div>
 
    <script>
-  document.getElementById("capture-btn").addEventListener("click", async () => {
+document.getElementById("capture-btn").addEventListener("click", async () => {
     try {
         const scene = document.querySelector("a-scene");
-        const arCanvas = document.querySelector('[data-aframe-arjs] canvas');
+        
+        // 1. Esperar a que AR.js esté completamente inicializado
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // 2. Acceder a los canvas de forma más precisa
+        const arCanvas = document.querySelector('.a-canvas[data-aframe-arjs]');
         const webglCanvas = scene.renderer.domElement;
         
         if (!arCanvas || !webglCanvas) {
-            throw new Error("No se encontraron los elementos del canvas");
+            throw new Error("Canvas no encontrados. Intenta recargar la página.");
         }
         
+        // 3. Crear canvas combinado
         const finalCanvas = document.createElement('canvas');
         finalCanvas.width = arCanvas.width;
         finalCanvas.height = arCanvas.height;
         const ctx = finalCanvas.getContext('2d');
         
-        // Capa 1: Video de la cámara
-        ctx.drawImage(arCanvas, 0, 0);
+        // 4. Dibujar en orden correcto
+        ctx.drawImage(arCanvas, 0, 0); // Fondo de la cámara
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.drawImage(webglCanvas, 0, 0); // Modelo 3D
         
-        // Capa 2: Modelo 3D
-        ctx.drawImage(webglCanvas, 0, 0);
-        
+        // 5. Crear y descargar imagen
         finalCanvas.toBlob(blob => {
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
             a.download = `ar-capture-${Date.now()}.png`;
             a.click();
-            URL.revokeObjectURL(url);
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
         }, 'image/png');
         
     } catch (error) {
-        console.error("Error al capturar:", error);
-        alert("Error al capturar. Asegúrate de permitir el acceso a la cámara.");
+        console.error("Error de captura:", error);
+        alert("Error: " + error.message);
     }
 });
 // Model manipulation logic
