@@ -33,11 +33,17 @@
     </style>
 </head>
 <body>
-   <a-scene id="scene" embedded arjs="sourceType: webcam; facingMode: user;" renderer="preserveDrawingBuffer: true;">
+  <a-scene 
+        id="scene" 
+        embedded 
+        arjs="sourceType: webcam; facingMode: user;"
+        renderer="preserveDrawingBuffer: true; alpha: true">
+        
         <a-assets>
             <a-asset-item id="model" src="https://zekturch.github.io/BKARexp/assets/asset.glb"></a-asset-item>
         </a-assets>
-        <a-entity id="model-container" gltf-model="#model" position="0 0 -2" scale="1 1 1"></a-entity>
+        
+        <a-entity id="model-container" gltf-model="#model" position="0 0 -2"></a-entity>
         <a-camera position="0 1.6 0"></a-camera>
     </a-scene>
 
@@ -49,48 +55,35 @@
     </div>
 
    <script>
-// Function to capture the AR scene
-function takeScreenshot() {
-    const scene = document.querySelector("a-scene");
-    if (scene && scene.renderer) {
-        // Use AR.js's built-in method to capture the scene
-        scene.renderer.domElement.toBlob((blob) => {
-            if (blob) {
+  document.getElementById("capture-btn").addEventListener("click", async () => {
+            const scene = document.querySelector("a-scene");
+            
+            // Wait for WebGL rendering to complete
+            await new Promise(resolve => requestAnimationFrame(resolve));
+            
+            // Capture WebGL canvas
+            const webglCanvas = scene.renderer.domElement;
+            
+            // Create final canvas
+            const finalCanvas = document.createElement('canvas');
+            finalCanvas.width = webglCanvas.width;
+            finalCanvas.height = webglCanvas.height;
+            
+            const ctx = finalCanvas.getContext('2d');
+            
+            // Draw WebGL content
+            ctx.drawImage(webglCanvas, 0, 0);
+            
+            // Convert to image
+            finalCanvas.toBlob(blob => {
                 const url = URL.createObjectURL(blob);
-                downloadAndShare(url);
-            } else {
-                console.error("Failed to capture the scene.");
-            }
-        }, 'image/png');
-    } else {
-        console.error("Scene or renderer not found.");
-    }
-}
-
-// Download and share the final screenshot
-function downloadAndShare(imgUrl) {
-    const link = document.createElement("a");
-    link.href = imgUrl;
-    link.download = "screenshot.png";
-    link.click();
-
-    if (navigator.share) {
-        fetch(imgUrl)
-            .then((response) => response.blob())
-            .then((blob) => {
-                navigator.share({
-                    title: "AR Screenshot",
-                    text: "Check out this AR capture!",
-                    files: [new File([blob], "screenshot.png", { type: "image/png" })],
-                }).catch(console.error);
-            });
-    } else {
-        alert("Screenshot saved! Share it manually.");
-    }
-}
-
-// Attach the screenshot function to the button
-document.getElementById("capture-btn").addEventListener("click", takeScreenshot);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'ar-capture.png';
+                a.click();
+                URL.revokeObjectURL(url);
+            }, 'image/png');
+        });
 
 // Model manipulation logic
 let model = document.getElementById("model-container");
