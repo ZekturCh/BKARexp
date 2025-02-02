@@ -28,7 +28,7 @@
             transition: background 0.3s;
         }
         .active {
-            background: #28a745 !important; /* Verde */
+            background: #28a745 !important;
         }
     </style>
 </head>
@@ -45,50 +45,38 @@
         <button id="move-btn">Mover</button>
         <button id="rotate-btn">Rotar</button>
         <button id="scale-btn">Escalar</button>
-        <button id="screenshot-btn">📸 Capturar</button>
+        <button id="capture-btn">📷 Capturar</button>
     </div>
 
     <script>
-        window.onload = function () {
-            if (sessionStorage.getItem("accesoPermitido") !== "true") {
-                alert("Acceso denegado. Primero ingresa un código válido.");
-                window.location.href = "index.html";
-            }
-        };
-        
         let model = document.getElementById("model-container");
         let mode = "";
         let lastX, lastY;
-
+        
         function setMode(newMode, button) {
             mode = newMode;
             document.querySelectorAll("#buttons button").forEach(btn => btn.classList.remove("active"));
             button.classList.add("active");
         }
-
-        document.getElementById("move-btn").addEventListener("click", () => setMode("move", moveBtn));
-        document.getElementById("rotate-btn").addEventListener("click", () => setMode("rotate", rotateBtn));
-        document.getElementById("scale-btn").addEventListener("click", () => setMode("scale", scaleBtn));
-
+        
+        document.getElementById("move-btn").addEventListener("click", (e) => setMode("move", e.target));
+        document.getElementById("rotate-btn").addEventListener("click", (e) => setMode("rotate", e.target));
+        document.getElementById("scale-btn").addEventListener("click", (e) => setMode("scale", e.target));
+        
         function handleMove(event) {
             if (!mode) return;
-
             let clientX = event.touches ? event.touches[0].clientX : event.clientX;
             let clientY = event.touches ? event.touches[0].clientY : event.clientY;
-
             if (lastX === undefined || lastY === undefined) {
                 lastX = clientX;
                 lastY = clientY;
                 return;
             }
-
             let deltaX = (clientX - lastX) * 0.5;
             let deltaY = (clientY - lastY) * 0.5;
-
             let pos = model.getAttribute("position");
             let rot = model.getAttribute("rotation");
             let scale = model.getAttribute("scale");
-
             if (mode === "move") {
                 model.setAttribute("position", `${pos.x + deltaX * 0.01} ${pos.y - deltaY * 0.01} ${pos.z}`);
             } else if (mode === "rotate") {
@@ -97,41 +85,49 @@
                 let newScale = Math.max(0.2, scale.x + deltaY * 0.01);
                 model.setAttribute("scale", `${newScale} ${newScale} ${newScale}`);
             }
-
             lastX = clientX;
             lastY = clientY;
         }
-
         function resetLastTouch() {
             lastX = undefined;
             lastY = undefined;
         }
-
         document.addEventListener("mousemove", handleMove);
         document.addEventListener("touchmove", handleMove);
         document.addEventListener("mouseup", resetLastTouch);
         document.addEventListener("touchend", resetLastTouch);
 
-        // 📸 Función para capturar pantalla y compartir
-        document.getElementById("screenshot-btn").addEventListener("click", () => {
+        function captureScreen() {
             let scene = document.querySelector("a-scene");
             let canvas = scene.renderer.domElement;
+            let imgData = canvas.toDataURL("image/png");
             
-            canvas.toBlob(blob => {
-                let file = new File([blob], "screenshot.png", { type: "image/png" });
-                let data = [new ClipboardItem({ "image/png": file })];
-
-                navigator.clipboard.write(data).then(() => {
-                    alert("Captura copiada al portapapeles. Comparte en tu app favorita.");
-                }).catch(err => {
-                    console.error("Error al copiar captura", err);
+            let link = document.createElement("a");
+            link.href = imgData;
+            link.download = "captura.png";
+            link.click();
+            
+            if (navigator.share) {
+                navigator.share({
+                    title: "Captura de AR",
+                    text: "Mira esta imagen de Realidad Aumentada",
+                    files: [
+                        new File([dataURItoBlob(imgData)], "captura.png", { type: "image/png" })
+                    ]
                 });
-
-                if (navigator.canShare && navigator.canShare({ files: [file] })) {
-                    navigator.share({ files: [file], title: "Captura AR" });
-                }
-            });
-        });
+            }
+        }
+        function dataURItoBlob(dataURI) {
+            let byteString = atob(dataURI.split(",")[1]);
+            let mimeString = dataURI.split(",")[0].split(":")[1].split(";")[0];
+            let ab = new ArrayBuffer(byteString.length);
+            let ia = new Uint8Array(ab);
+            for (let i = 0; i < byteString.length; i++) {
+                ia[i] = byteString.charCodeAt(i);
+            }
+            return new Blob([ab], { type: mimeString });
+        }
+        document.getElementById("capture-btn").addEventListener("click", captureScreen);
     </script>
 </body>
 </html>
