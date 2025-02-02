@@ -106,26 +106,48 @@
         return /iPad|iPhone|iPod/.test(navigator.userAgent);
     }
 
-    function captureScreen() {
+    async function captureScreen() {
         let scene = document.querySelector("a-scene");
         let canvas = scene.renderer.domElement;
+        let buttons = document.getElementById("buttons");
 
-        if (canvas) {
-            // Intentar capturar desde WebGL
-            let imgData = canvas.toDataURL("image/png");
-            if (imgData.length > 1000) {
-                shareImage(imgData);
-                return;
+        // Ocultar botones para que no salgan en la imagen
+        buttons.style.display = "none";
+
+        try {
+            let imgData;
+            
+            // Intentamos capturar desde WebGL
+            imgData = canvas.toDataURL("image/png");
+
+            // Si la imagen capturada es negra o vacía, intentamos con html2canvas
+            if (imgData.length < 1000 || isIOS()) {
+                console.log("WebGL falló, usando html2canvas...");
+                imgData = await captureWithHtml2Canvas();
             }
-        }
 
-        // Si la captura con WebGL falla, usar html2canvas
-        html2canvas(document.body, {
-            logging: false,
-            useCORS: true
-        }).then(canvas => {
-            let imgData = canvas.toDataURL("image/png");
             shareImage(imgData);
+        } catch (err) {
+            console.error("Error capturando la pantalla:", err);
+        } finally {
+            // Volvemos a mostrar los botones
+            buttons.style.display = "flex";
+        }
+    }
+
+    function captureWithHtml2Canvas() {
+        return new Promise((resolve, reject) => {
+            html2canvas(document.body, {
+                useCORS: true,
+                backgroundColor: null,
+                logging: false,
+                onclone: (clonedDoc) => {
+                    // Aseguramos que el WebGL está renderizado antes de capturar
+                    clonedDoc.querySelector("a-scene").style.visibility = "visible";
+                }
+            }).then(canvas => {
+                resolve(canvas.toDataURL("image/png"));
+            }).catch(err => reject(err));
         });
     }
 
