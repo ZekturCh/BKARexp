@@ -7,6 +7,7 @@
     <script src="https://aframe.io/releases/1.0.4/aframe.min.js"></script>
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
     <script src="https://raw.githack.com/donmccurdy/aframe-extras/master/dist/aframe-extras.loaders.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
         body { margin: 0; overflow: hidden; }
         #buttons {
@@ -49,109 +50,124 @@
     </div>
 
     <script>
-        let model = document.getElementById("model-container");
-        let mode = "";
-        let lastX, lastY;
-        
-        function setMode(newMode, button) {
-            mode = newMode;
-            document.querySelectorAll("#buttons button").forEach(btn => btn.classList.remove("active"));
-            button.classList.add("active");
-        }
-        
-        document.getElementById("move-btn").addEventListener("click", (e) => setMode("move", e.target));
-        document.getElementById("rotate-btn").addEventListener("click", (e) => setMode("rotate", e.target));
-        document.getElementById("scale-btn").addEventListener("click", (e) => setMode("scale", e.target));
-        
-        function handleMove(event) {
-            if (!mode) return;
-            let clientX = event.touches ? event.touches[0].clientX : event.clientX;
-            let clientY = event.touches ? event.touches[0].clientY : event.clientY;
-            if (lastX === undefined || lastY === undefined) {
-                lastX = clientX;
-                lastY = clientY;
-                return;
-            }
-            let deltaX = (clientX - lastX) * 0.5;
-            let deltaY = (clientY - lastY) * 0.5;
-            let pos = model.getAttribute("position");
-            let rot = model.getAttribute("rotation");
-            let scale = model.getAttribute("scale");
-            if (mode === "move") {
-                model.setAttribute("position", `${pos.x + deltaX * 0.01} ${pos.y - deltaY * 0.01} ${pos.z}`);
-            } else if (mode === "rotate") {
-                model.setAttribute("rotation", `${rot.x - deltaY} ${rot.y + deltaX} ${rot.z}`);
-            } else if (mode === "scale") {
-                let newScale = Math.max(0.2, scale.x + deltaY * 0.01);
-                model.setAttribute("scale", `${newScale} ${newScale} ${newScale}`);
-            }
+    let model = document.getElementById("model-container");
+    let mode = "";
+    let lastX, lastY;
+
+    function setMode(newMode, button) {
+        mode = newMode;
+        document.querySelectorAll("#buttons button").forEach(btn => btn.classList.remove("active"));
+        button.classList.add("active");
+    }
+
+    document.getElementById("move-btn").addEventListener("click", (e) => setMode("move", e.target));
+    document.getElementById("rotate-btn").addEventListener("click", (e) => setMode("rotate", e.target));
+    document.getElementById("scale-btn").addEventListener("click", (e) => setMode("scale", e.target));
+
+    function handleMove(event) {
+        if (!mode) return;
+        let clientX = event.touches ? event.touches[0].clientX : event.clientX;
+        let clientY = event.touches ? event.touches[0].clientY : event.clientY;
+        if (lastX === undefined || lastY === undefined) {
             lastX = clientX;
             lastY = clientY;
+            return;
         }
-        function resetLastTouch() {
-            lastX = undefined;
-            lastY = undefined;
+        let deltaX = (clientX - lastX) * 0.5;
+        let deltaY = (clientY - lastY) * 0.5;
+        let pos = model.getAttribute("position");
+        let rot = model.getAttribute("rotation");
+        let scale = model.getAttribute("scale");
+
+        if (mode === "move") {
+            model.setAttribute("position", `${pos.x + deltaX * 0.01} ${pos.y - deltaY * 0.01} ${pos.z}`);
+        } else if (mode === "rotate") {
+            model.setAttribute("rotation", `${rot.x - deltaY} ${rot.y + deltaX} ${rot.z}`);
+        } else if (mode === "scale") {
+            let newScale = Math.max(0.2, scale.x + deltaY * 0.01);
+            model.setAttribute("scale", `${newScale} ${newScale} ${newScale}`);
         }
-        document.addEventListener("mousemove", handleMove);
-        document.addEventListener("touchmove", handleMove);
-        document.addEventListener("mouseup", resetLastTouch);
-        document.addEventListener("touchend", resetLastTouch);
 
-       async function captureScreen() {
-    try {
-        const stream = await navigator.mediaDevices.getDisplayMedia({
-            video: { mediaSource: "screen" }
-        });
-
-        const track = stream.getVideoTracks()[0];
-        const imageCapture = new ImageCapture(track);
-        const bitmap = await imageCapture.grabFrame();
-        track.stop(); // Detener la captura
-
-        // Convertir bitmap a imagen PNG
-        const canvas = document.createElement("canvas");
-        canvas.width = bitmap.width;
-        canvas.height = bitmap.height;
-        const ctx = canvas.getContext("2d");
-        ctx.drawImage(bitmap, 0, 0, bitmap.width, bitmap.height);
-
-        // Convertir a Blob para compartir
-        canvas.toBlob(blob => {
-            const file = new File([blob], "captura.png", { type: "image/png" });
-
-            // Descargar la imagen
-            const link = document.createElement("a");
-            link.href = URL.createObjectURL(blob);
-            link.download = "captura.png";
-            link.click();
-
-            // Compartir la imagen
-            if (navigator.share) {
-                navigator.share({
-                    title: "Captura de AR",
-                    text: "Mira esta imagen de Realidad Aumentada",
-                    files: [file]
-                }).catch(console.error);
-            }
-        }, "image/png");
-    } catch (err) {
-        console.error("Error al capturar la pantalla:", err);
+        lastX = clientX;
+        lastY = clientY;
     }
-}
 
-document.getElementById("capture-btn").addEventListener("click", captureScreen);
-        function dataURItoBlob(dataURI) {
-            let byteString = atob(dataURI.split(",")[1]);
-            let mimeString = dataURI.split(",")[0].split(":")[1].split(";")[0];
-            let ab = new ArrayBuffer(byteString.length);
-            let ia = new Uint8Array(ab);
-            for (let i = 0; i < byteString.length; i++) {
-                ia[i] = byteString.charCodeAt(i);
-            }
-            return new Blob([ab], { type: mimeString });
+    function resetLastTouch() {
+        lastX = undefined;
+        lastY = undefined;
+    }
+
+    document.addEventListener("mousemove", handleMove);
+    document.addEventListener("touchmove", handleMove);
+    document.addEventListener("mouseup", resetLastTouch);
+    document.addEventListener("touchend", resetLastTouch);
+
+    // Detectar si el usuario usa iOS
+    function isIOS() {
+        return /iPad|iPhone|iPod/.test(navigator.userAgent);
+    }
+
+    // Capturar la pantalla
+    function captureScreen() {
+        if (isIOS()) {
+            captureWithHTML2Canvas();
+        } else {
+            captureWithCanvas();
         }
-        document.getElementById("capture-btn").addEventListener("click", captureScreen);
-    </script>
+    }
+
+    // Método para capturar usando WebGL (Android y PC)
+    function captureWithCanvas() {
+        let scene = document.querySelector("a-scene");
+        let canvas = scene.renderer.domElement;
+        let imgData = canvas.toDataURL("image/png");
+
+        shareImage(imgData);
+    }
+
+    // Método alternativo para iOS (Safari y Chrome)
+    function captureWithHTML2Canvas() {
+        html2canvas(document.body).then(canvas => {
+            let imgData = canvas.toDataURL("image/png");
+            shareImage(imgData);
+        });
+    }
+
+    // Compartir en redes sociales
+    function shareImage(imgData) {
+        let link = document.createElement("a");
+        link.href = imgData;
+        link.download = "captura.png";
+        link.click();
+
+        if (navigator.share) {
+            navigator.share({
+                title: "Captura de AR",
+                text: "Mira esta imagen de Realidad Aumentada",
+                files: [
+                    new File([dataURItoBlob(imgData)], "captura.png", { type: "image/png" })
+                ]
+            }).catch(err => console.log("Error compartiendo:", err));
+        } else {
+            alert("Descarga la imagen y compártela manualmente.");
+        }
+    }
+
+    // Convertir dataURI a Blob para compartir en iOS
+    function dataURItoBlob(dataURI) {
+        let byteString = atob(dataURI.split(",")[1]);
+        let mimeString = dataURI.split(",")[0].split(":")[1].split(";")[0];
+        let ab = new ArrayBuffer(byteString.length);
+        let ia = new Uint8Array(ab);
+        for (let i = 0; i < byteString.length; i++) {
+            ia[i] = byteString.charCodeAt(i);
+        }
+        return new Blob([ab], { type: mimeString });
+    }
+
+    document.getElementById("capture-btn").addEventListener("click", captureScreen);
+</script>
+
 </body>
 </html>
 
