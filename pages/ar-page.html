@@ -100,8 +100,10 @@
        function captureScreen() {
     let scene = document.querySelector("a-scene");
     let canvas = scene.renderer.domElement;
-    
-    // 🔹 Esperamos un frame para asegurarnos de que WebGL ha terminado de renderizar
+
+    // 🔹 Forzar redibujado antes de capturar
+    scene.renderer.render(scene.object3D, scene.camera);
+
     setTimeout(() => {
         let imgData = canvas.toDataURL("image/png");
         
@@ -117,7 +119,7 @@
                 files: [new File([dataURItoBlob(imgData)], "captura.png", { type: "image/png" })]
             });
         }
-    }, 100); // ⏳ Esperamos 100ms para asegurar que el frame esté listo
+    }, 100); // ⏳ Esperamos 100ms antes de capturar
 }
         function dataURItoBlob(dataURI) {
             let byteString = atob(dataURI.split(",")[1]);
