@@ -62,27 +62,18 @@ async function takeScreenshot() {
     finalCanvas.height = rendererCanvas.height;
 
     try {
-        let img1 = await loadImage(rendererCanvas.toDataURL("image/png"));
-        let img2 = await loadImage(arCanvas.toDataURL("image/png"));
+        // Draw AR canvas first
+        ctx.drawImage(arCanvas, 0, 0, finalCanvas.width, finalCanvas.height);
 
-        ctx.drawImage(img2, 0, 0); // Draw AR canvas
-        ctx.drawImage(img1, 0, 0); // Draw WebGL scene
+        // Draw WebGL scene on top
+        ctx.drawImage(rendererCanvas, 0, 0, finalCanvas.width, finalCanvas.height);
 
+        // Convert the final canvas to an image
         let finalImage = finalCanvas.toDataURL("image/png");
         downloadAndShare(finalImage);
     } catch (error) {
         console.error("Screenshot failed:", error);
     }
-}
-
-// Helper to load an image from Data URL
-function loadImage(dataUrl) {
-    return new Promise((resolve, reject) => {
-        let img = new Image();
-        img.onload = () => resolve(img);
-        img.onerror = reject;
-        img.src = dataUrl;
-    });
 }
 
 // Download and share the final screenshot
@@ -116,63 +107,62 @@ function dataURItoBlob(dataURI) {
 }
 
 document.getElementById("capture-btn").addEventListener("click", takeScreenshot);
-    let model = document.getElementById("model-container");
-    let mode = "";
-    let lastX, lastY;
 
-    function setMode(newMode, button) {
-        mode = newMode;
-        document.querySelectorAll("#buttons button").forEach(btn => btn.classList.remove("active"));
-        button.classList.add("active");
-    }
+let model = document.getElementById("model-container");
+let mode = "";
+let lastX, lastY;
 
-    document.getElementById("move-btn").addEventListener("click", (e) => setMode("move", e.target));
-    document.getElementById("rotate-btn").addEventListener("click", (e) => setMode("rotate", e.target));
-    document.getElementById("scale-btn").addEventListener("click", (e) => setMode("scale", e.target));
+function setMode(newMode, button) {
+    mode = newMode;
+    document.querySelectorAll("#buttons button").forEach(btn => btn.classList.remove("active"));
+    button.classList.add("active");
+}
 
-    function handleMove(event) {
-        if (!mode) return;
-        let clientX = event.touches ? event.touches[0].clientX : event.clientX;
-        let clientY = event.touches ? event.touches[0].clientY : event.clientY;
-        if (lastX === undefined || lastY === undefined) {
-            lastX = clientX;
-            lastY = clientY;
-            return;
-        }
-        let deltaX = (clientX - lastX) * 0.5;
-        let deltaY = (clientY - lastY) * 0.5;
-        let pos = model.getAttribute("position");
-        let rot = model.getAttribute("rotation");
-        let scale = model.getAttribute("scale");
+document.getElementById("move-btn").addEventListener("click", (e) => setMode("move", e.target));
+document.getElementById("rotate-btn").addEventListener("click", (e) => setMode("rotate", e.target));
+document.getElementById("scale-btn").addEventListener("click", (e) => setMode("scale", e.target));
 
-        if (mode === "move") {
-            model.setAttribute("position", `${pos.x + deltaX * 0.01} ${pos.y - deltaY * 0.01} ${pos.z}`);
-        } else if (mode === "rotate") {
-            model.setAttribute("rotation", `${rot.x - deltaY} ${rot.y + deltaX} ${rot.z}`);
-        } else if (mode === "scale") {
-            let newScale = Math.max(0.2, scale.x + deltaY * 0.01);
-            model.setAttribute("scale", `${newScale} ${newScale} ${newScale}`);
-        }
-
+function handleMove(event) {
+    if (!mode) return;
+    let clientX = event.touches ? event.touches[0].clientX : event.clientX;
+    let clientY = event.touches ? event.touches[0].clientY : event.clientY;
+    if (lastX === undefined || lastY === undefined) {
         lastX = clientX;
         lastY = clientY;
+        return;
+    }
+    let deltaX = (clientX - lastX) * 0.5;
+    let deltaY = (clientY - lastY) * 0.5;
+    let pos = model.getAttribute("position");
+    let rot = model.getAttribute("rotation");
+    let scale = model.getAttribute("scale");
+
+    if (mode === "move") {
+        model.setAttribute("position", `${pos.x + deltaX * 0.01} ${pos.y - deltaY * 0.01} ${pos.z}`);
+    } else if (mode === "rotate") {
+        model.setAttribute("rotation", `${rot.x - deltaY} ${rot.y + deltaX} ${rot.z}`);
+    } else if (mode === "scale") {
+        let newScale = Math.max(0.2, scale.x + deltaY * 0.01);
+        model.setAttribute("scale", `${newScale} ${newScale} ${newScale}`);
     }
 
-    function resetLastTouch() {
-        lastX = undefined;
-        lastY = undefined;
-    }
+    lastX = clientX;
+    lastY = clientY;
+}
 
-    document.addEventListener("mousemove", handleMove);
-    document.addEventListener("touchmove", handleMove);
-    document.addEventListener("mouseup", resetLastTouch);
-    document.addEventListener("touchend", resetLastTouch);
+function resetLastTouch() {
+    lastX = undefined;
+    lastY = undefined;
+}
 
-    function isIOS() {
-        return /iPad|iPhone|iPod/.test(navigator.userAgent);
-    }
+document.addEventListener("mousemove", handleMove);
+document.addEventListener("touchmove", handleMove);
+document.addEventListener("mouseup", resetLastTouch);
+document.addEventListener("touchend", resetLastTouch);
 
+function isIOS() {
+    return /iPad|iPhone|iPod/.test(navigator.userAgent);
+}
 </script>
 </body>
 </html>
-
