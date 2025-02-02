@@ -56,35 +56,40 @@
 
    <script>
   document.getElementById("capture-btn").addEventListener("click", async () => {
-            const scene = document.querySelector("a-scene");
-            
-            // Wait for WebGL rendering to complete
-            await new Promise(resolve => requestAnimationFrame(resolve));
-            
-            // Capture WebGL canvas
-            const webglCanvas = scene.renderer.domElement;
-            
-            // Create final canvas
-            const finalCanvas = document.createElement('canvas');
-            finalCanvas.width = webglCanvas.width;
-            finalCanvas.height = webglCanvas.height;
-            
-            const ctx = finalCanvas.getContext('2d');
-            
-            // Draw WebGL content
-            ctx.drawImage(webglCanvas, 0, 0);
-            
-            // Convert to image
-            finalCanvas.toBlob(blob => {
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = 'ar-capture.png';
-                a.click();
-                URL.revokeObjectURL(url);
-            }, 'image/png');
-        });
-
+    try {
+        const scene = document.querySelector("a-scene");
+        const arCanvas = document.querySelector('[data-aframe-arjs] canvas');
+        const webglCanvas = scene.renderer.domElement;
+        
+        if (!arCanvas || !webglCanvas) {
+            throw new Error("No se encontraron los elementos del canvas");
+        }
+        
+        const finalCanvas = document.createElement('canvas');
+        finalCanvas.width = arCanvas.width;
+        finalCanvas.height = arCanvas.height;
+        const ctx = finalCanvas.getContext('2d');
+        
+        // Capa 1: Video de la cámara
+        ctx.drawImage(arCanvas, 0, 0);
+        
+        // Capa 2: Modelo 3D
+        ctx.drawImage(webglCanvas, 0, 0);
+        
+        finalCanvas.toBlob(blob => {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `ar-capture-${Date.now()}.png`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }, 'image/png');
+        
+    } catch (error) {
+        console.error("Error al capturar:", error);
+        alert("Error al capturar. Asegúrate de permitir el acceso a la cámara.");
+    }
+});
 // Model manipulation logic
 let model = document.getElementById("model-container");
 let mode = "";
