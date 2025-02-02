@@ -43,28 +43,38 @@
     </style>
 </head>
 <body>
-   <a-scene 
-  id="scene" 
-  embedded 
-  arjs="sourceType: webcam; facingMode: user; detectionMode: mono_and_matrix; matrixCodeType: 3x3;"
->
-  <a-assets>
-    <a-asset-item id="model" src="https://zekturch.github.io/BKARexp/assets/asset.glb"></a-asset-item>
-  </a-assets>
+  <a-scene 
+        id="scene" 
+        embedded 
+        arjs="
+            sourceType: webcam;
+            camera-facing: user;  <!-- Parámetro corregido -->
+            trackingMethod: best; <!-- Usar SLAM para móviles -->
+            renderer: logDepthBuffer: true; 
+            debugUIEnabled: false;
+        "
+        vr-mode-ui="enabled: false"
+    >
+        <a-assets>
+            <a-asset-item id="model" src="https://zekturch.github.io/BKARexp/assets/asset.glb"></a-asset-item>
+        </a-assets>
 
-  <!-- Marcador AR (solo necesario si usas marcadores físicos) -->
-  <a-marker preset="hiro">
-    <a-entity 
-      id="model-container" 
-      gltf-model="#model" 
-      position="0 0 -2" 
-      scale="1 1 1"
-    ></a-entity>
-  </a-marker>
+        <!-- MODELO 3D - POSICIÓN PARA MÓVILES -->
+        <a-entity 
+            id="model-container" 
+            gltf-model="#model" 
+            position="0 0 0" <!-- Posición inicial centrada -->
+            scale="0.5 0.5 0.5" <!-- Escala reducida para móviles -->
+            animation="property: rotation; to: 0 360 0; loop: true; dur: 10000"
+        ></a-entity>
 
-  <!-- Cámara controlada por AR.js -->
-  <a-entity camera></a-entity>
-</a-scene>
+        <!-- CÁMARA PARA AR.js -->
+        <a-entity 
+            camera 
+            position="0 1.6 0" 
+            look-controls="enabled: false"
+        ></a-entity>
+    </a-scene>
     <div id="buttons">
         <button id="move-btn">Mover</button>
         <button id="rotate-btn">Rotar</button>
