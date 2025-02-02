@@ -4,14 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AR - Manipulación de Modelo 3D</title>
-    
-    <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
+    <script src="https://aframe.io/releases/1.0.4/aframe.min.js"></script>
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
     <script src="https://raw.githack.com/donmccurdy/aframe-extras/master/dist/aframe-extras.loaders.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/canvas2image/0.1/canvas2image.min.js"></script>
-    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
-    <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
-    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar-nft.js"></script>
     <style>
         body { margin: 0; overflow: hidden; }
         #buttons {
@@ -35,54 +30,21 @@
         .active {
             background: #28a745 !important; /* Verde */
         }
-        #screenshot-btn {
-          background: #dc3545; /* Red color for visual distinction */
-        }
-        
-        /* Add this for iOS image preview */
-        canvas {
-          display: none; /* Keep our merge canvas hidden */
-        }
     </style>
 </head>
 <body>
-  <a-scene 
-        id="scene" 
-        embedded 
-        arjs="
-            sourceType: webcam;
-            camera-facing: user;  <!-- Parámetro corregido -->
-            trackingMethod: best; <!-- Usar SLAM para móviles -->
-            renderer: logDepthBuffer: true; 
-            debugUIEnabled: false;
-        "
-        vr-mode-ui="enabled: false"
-    >
+    <a-scene id="scene" embedded arjs="sourceType: webcam; facingMode: user;">
         <a-assets>
-            <a-asset-item id="model" src="https://cdn.aframe.io/test-models/models/box/box.glb"></a-asset-item>
+            <a-asset-item id="model" src="https://zekturch.github.io/BKARexp/assets/asset.glb"></a-asset-item>
         </a-assets>
-
-        <!-- MODELO 3D - POSICIÓN PARA MÓVILES -->
-        <a-entity 
-            id="model-container" 
-            gltf-model="#model" 
-            position="0 0 0" <!-- Posición inicial centrada -->
-            scale="0.5 0.5 0.5" <!-- Escala reducida para móviles -->
-            animation="property: rotation; to: 0 360 0; loop: true; dur: 10000"
-        ></a-entity>
-
-        <!-- CÁMARA PARA AR.js -->
-        <a-entity 
-            camera 
-            position="0 1.6 0" 
-            look-controls="enabled: false"
-        ></a-entity>
+        <a-entity id="model-container" gltf-model="#model" position="0 0 -2" scale="1 1 1"></a-entity>
+        <a-camera position="0 1.6 0"></a-camera>
     </a-scene>
+
     <div id="buttons">
         <button id="move-btn">Mover</button>
         <button id="rotate-btn">Rotar</button>
         <button id="scale-btn">Escalar</button>
-        <button id="screenshot-btn">Capturar</button>
     </div>
 
     <script>
@@ -159,78 +121,6 @@ window.onload = function () {
         document.addEventListener("touchmove", handleMove);
         document.addEventListener("mouseup", resetLastTouch);
         document.addEventListener("touchend", resetLastTouch);
-
-class ScreenshotTaker {
-  constructor() {
-    this.mergeCanvas = document.createElement('canvas');
-    this.mergeCtx = this.mergeCanvas.getContext('2d');
-    this.setupButton();
-  }
-
-  setupButton() {
-    const btn = document.getElementById('screenshot-btn');
-    btn.addEventListener('click', () => this.capture());
-  }
-
-  async capture() {
-    try {
-      const { video, arCanvas } = this.getElements();
-      await this.prepareCanvas(video, arCanvas);
-      this.saveToGallery();
-    } catch (error) {
-      console.error('Capture failed:', error);
-    }
-  }
-
-  getElements() {
-    return {
-      video: document.querySelector('[arjs-video]') || document.querySelector('video'),
-      arCanvas: document.querySelector('canvas')
-    };
-  }
-
-  prepareCanvas(video, arCanvas) {
-    return new Promise(resolve => {
-      // Corregir dimensiones
-      this.mergeCanvas.width = arCanvas.width;
-      this.mergeCanvas.height = arCanvas.height;
-      
-      // Eliminar el escalado manual
-      this.mergeCtx.drawImage(video, 0, 0, this.mergeCanvas.width, this.mergeCanvas.height);
-      this.mergeCtx.drawImage(arCanvas, 0, 0, this.mergeCanvas.width, this.mergeCanvas.height);
-      resolve();
-    });
-  }
-
-  saveToGallery() {
-    this.mergeCanvas.toBlob(blob => {
-      const file = new File([blob], `AR-${Date.now()}.png`, { type: 'image/png' });
-      
-      // Usar Web Share API para iOS
-      if (navigator.share) {
-        navigator.share({
-          files: [file],
-          title: 'AR Capture'
-        }).catch(console.error);
-      } else {
-        // Método alternativo para Android
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.download = file.name;
-        link.href = url;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-      }
-    }, 'image/png');
-  }
-}
-
-// Inicializar después de que cargue A-Frame
-document.querySelector('a-scene').addEventListener('loaded', () => {
-  new ScreenshotTaker();
-});
     </script>
 </body>
 </html>
