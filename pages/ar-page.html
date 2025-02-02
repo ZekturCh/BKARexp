@@ -2,12 +2,10 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AR - Manipulación de Modelo 3D</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>AR Mobile</title>
     <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/aframe-ar@1.7.2/aframe-ar.min.js"></script>
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
-    <script src="https://raw.githack.com/donmccurdy/aframe-extras/master/dist/aframe-extras.loaders.min.js"></script>
     <style>
         body { margin: 0; overflow: hidden; }
         #buttons {
@@ -28,148 +26,70 @@
             color: white;
             transition: background 0.3s;
         }
-        .active {
-            background: #28a745 !important; /* Verde */
-        }
+        .active { background: #28a745 !important; }
+        #screenshot-btn { background: #dc3545; }
     </style>
 </head>
 <body>
-    <a-scene embedded arjs>
-        <!-- Cámara inicial (trasera) -->
-        <a-camera id="camera" position="0 1.6 0" wasd-controls-enabled="false"></a-camera>
-        
-        <!-- Modelo 3D -->
-        <a-entity id="modelo3D" position="0 0 -3" scale="1 1 1" rotation="0 180 0"
-            gltf-model="https://zekturch.github.io/BKARexp/assets/asset.glb"
-            gesture-handler>
-        </a-entity>
+    <a-scene vr-mode-ui="enabled: false" arjs>
+        <a-assets>
+            <a-asset-item id="model" src="https://zekturch.github.io/BKARexp/assets/asset.glb"></a-asset-item>
+        </a-assets>
+        <a-entity id="model-container" gltf-model="#model" position="0 0 -1" scale="0.3 0.3 0.3"></a-entity>
+        <a-camera position="0 0 0"></a-camera>
     </a-scene>
+
     <div id="buttons">
         <button id="move-btn">Mover</button>
         <button id="rotate-btn">Rotar</button>
         <button id="scale-btn">Escalar</button>
+        <button id="screenshot-btn">Capturar</button>
     </div>
-  <div style="position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 10;">
-        <button onclick="tomarFoto()">📸 Tomar Foto</button>
-        <button onclick="cambiarCamara()">🔄 Cambiar Cámara</button>
-    </div>
+
 
     <script>
-window.onload = function () {
-            if (sessionStorage.getItem("accesoPermitido") !== "true") {
-                alert("Acceso denegado. Primero ingresa un código válido.");
-                window.location.href = "index.html"; // Redirige a la página de registro
+        const model = document.getElementById('model-container');
+        let isMoving = false, isRotating = false, isScaling = false;
+
+        document.getElementById('move-btn').addEventListener('click', () => {
+            isMoving = !isMoving;
+            isRotating = isScaling = false;
+        });
+        document.getElementById('rotate-btn').addEventListener('click', () => {
+            isRotating = !isRotating;
+            isMoving = isScaling = false;
+        });
+        document.getElementById('scale-btn').addEventListener('click', () => {
+            isScaling = !isScaling;
+            isMoving = isRotating = false;
+        });
+
+        window.addEventListener('touchmove', (event) => {
+            if (isMoving) {
+                model.object3D.position.x += event.touches[0].movementX * 0.001;
+                model.object3D.position.y -= event.touches[0].movementY * 0.001;
             }
-        };
-        let model = document.getElementById("model-container");
-        let mode = "";
-        let lastX, lastY;
-        let useFrontCamera = false; // Estado de la cámara (false = trasera, true = frontal)
-
-        // Guardar referencia a los botones
-        let moveBtn = document.getElementById("move-btn");
-        let rotateBtn = document.getElementById("rotate-btn");
-        let scaleBtn = document.getElementById("scale-btn");
-
-        
-
-        // ✅ Función para cambiar modo y actualizar estilos
-        function setMode(newMode, button) {
-            mode = newMode;
-            // 🔥 Quita la clase "active" de todos los botones
-            document.querySelectorAll("#buttons button").forEach(btn => btn.classList.remove("active"));
-            // ✅ Agrega la clase "active" al botón seleccionado
-            button.classList.add("active");
-        }
-
-        // Asignar eventos a los botones
-        moveBtn.addEventListener("click", () => setMode("move", moveBtn));
-        rotateBtn.addEventListener("click", () => setMode("rotate", rotateBtn));
-        scaleBtn.addEventListener("click", () => setMode("scale", scaleBtn));
-
-        function handleMove(event) {
-            if (!mode) return;
-
-            let clientX = event.touches ? event.touches[0].clientX : event.clientX;
-            let clientY = event.touches ? event.touches[0].clientY : event.clientY;
-
-            if (lastX === undefined || lastY === undefined) {
-                lastX = clientX;
-                lastY = clientY;
-                return;
+            if (isRotating) {
+                model.object3D.rotation.y += event.touches[0].movementX * 0.01;
             }
-
-            let deltaX = (clientX - lastX) * 0.5;
-            let deltaY = (clientY - lastY) * 0.5;
-
-            let pos = model.getAttribute("position");
-            let rot = model.getAttribute("rotation");
-            let scale = model.getAttribute("scale");
-
-            if (mode === "move") {
-                model.setAttribute("position", `${pos.x + deltaX * 0.01} ${pos.y - deltaY * 0.01} ${pos.z}`);
-            } else if (mode === "rotate") {
-                model.setAttribute("rotation", `${rot.x - deltaY} ${rot.y + deltaX} ${rot.z}`);
-            } else if (mode === "scale") {
-                let newScale = Math.max(0.2, scale.x + deltaY * 0.01);
-                model.setAttribute("scale", `${newScale} ${newScale} ${newScale}`);
+            if (isScaling) {
+                model.object3D.scale.multiplyScalar(1 + event.touches[0].movementY * 0.001);
             }
+        });
 
-            lastX = clientX;
-            lastY = clientY;
-        }
-
-        function resetLastTouch() {
-            lastX = undefined;
-            lastY = undefined;
-        }
-
-        document.addEventListener("mousemove", handleMove);
-        document.addEventListener("touchmove", handleMove);
-        document.addEventListener("mouseup", resetLastTouch);
-        document.addEventListener("touchend", resetLastTouch);
-
-        let usandoFrontal = false;
-
-        // Cambiar entre cámara trasera y frontal
-        function cambiarCamara() {
-            usandoFrontal = !usandoFrontal;
-            let escena = document.querySelector("a-scene");
-            let camara = document.querySelector("#camera");
-            
-            // Cambia la cámara según la opción seleccionada
-            escena.removeChild(camara);
-            let nuevaCamara = document.createElement("a-camera");
-            nuevaCamara.setAttribute("id", "camera");
-            nuevaCamara.setAttribute("position", "0 1.6 0");
-            nuevaCamara.setAttribute("wasd-controls-enabled", "false");
-            nuevaCamara.setAttribute("facingMode", usandoFrontal ? "user" : "environment");
-
-            escena.appendChild(nuevaCamara);
-        }
-
-        // Captura la pantalla y la permite compartir
-        function tomarFoto() {
-            let escena = document.querySelector("a-scene");
-            escena.renderer.preserveDrawingBuffer = true; // Evita que se borre la imagen
-            let canvas = escena.renderer.domElement;
-            let dataURL = canvas.toDataURL("image/png");
-
-            // Crear un enlace para descargar la imagen
-            let enlace = document.createElement("a");
-            enlace.href = dataURL;
-            enlace.download = "captura_ar.png";
-            enlace.click();
-
-            // Intentar compartir si el navegador lo permite
-            if (navigator.share) {
-                navigator.share({
-                    title: "Mira mi captura en Realidad Aumentada!",
-                    text: "Tomé esta foto con AR 😍",
-                    files: [new File([dataURL], "captura_ar.png", { type: "image/png" })]
-                }).catch(error => console.log("Error al compartir", error));
-            }
-        }
+        document.getElementById('screenshot-btn').addEventListener('click', () => {
+            const scene = document.querySelector('a-scene');
+            scene.renderer.domElement.toBlob(blob => {
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = 'screenshot.png';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+            });
+        });
     </script>
 </body>
 </html>
