@@ -49,13 +49,7 @@
     </div>
 
     <script>
-scene.renderer.alpha = true; // Mantener fondo transparente
-scene.renderer.autoClear = false; // Evitar limpiar buffer
 
-// Para dispositivos móviles, añadir meta tag
-document.head.innerHTML += `
-<meta name="viewport" content="width=device-width, user-scalable=no, 
-    initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">`;
 //COMPROBAR LOG PERMITIDO Y CÓDIGO DE FUNCIÓN
 window.onload = function () {
             if (sessionStorage.getItem("accesoPermitido") !== "true") {
@@ -74,7 +68,13 @@ window.onload = function () {
         let scaleBtn = document.getElementById("scale-btn");
 
         
+scene.renderer.alpha = true; // Mantener fondo transparente
+scene.renderer.autoClear = false; // Evitar limpiar buffer
 
+// Para dispositivos móviles, añadir meta tag
+document.head.innerHTML += `
+<meta name="viewport" content="width=device-width, user-scalable=no, 
+    initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">`;
         // ✅ Función para cambiar modo y actualizar estilos
         function setMode(newMode, button) {
             mode = newMode;
