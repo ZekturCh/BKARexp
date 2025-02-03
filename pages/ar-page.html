@@ -47,7 +47,6 @@
         <button id="rotate-btn">Rotar</button>
         <button id="scale-btn">Escalar</button>
         <button id="capture-btn">Capturar</button>
-        <button id="switch-camera">Cambiar Cámara</button> <!-- Botón para cambiar cámara -->
     </div>
 
     <script>
@@ -125,13 +124,7 @@
             document.addEventListener("mouseup", resetLastTouch);
             document.addEventListener("touchend", resetLastTouch);
 
-            // Función para cambiar cámara
-            switchCameraBtn.addEventListener('click', () => {
-                currentCamera = currentCamera === 'user' ? 'environment' : 'user';
-                const scene = document.querySelector('a-scene');
-                scene.setAttribute('arjs', `sourceType: webcam; facingMode: ${currentCamera};`);
-                console.log(`Cámara cambiada a: ${currentCamera}`);
-            });
+            
 
            // Captura de pantalla
            document.getElementById('capture-btn').addEventListener('click', async () => {
