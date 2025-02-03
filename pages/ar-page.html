@@ -93,89 +93,77 @@
             }
         });
 
-        // ===== [3. Corrección de cámara frontal/trasera] =====
-        const sceneEl = document.querySelector('a-scene');
-        if (sceneEl.hasLoaded) {
-            init();
-        } else {
-            sceneEl.addEventListener('loaded', init);
-        }
+     class ScreenshotTaker {
+  constructor() {
+    this.mergeCanvas = document.createElement('canvas');
+    this.mergeCtx = this.mergeCanvas.getContext('2d');
+    this.setupButton();
+  }
 
-        function init() {
-            const arjsSys = sceneEl.systems['arjs'];
-            arjsSys._arSession.on('camera_init', () => {
-                console.log('Cámara activada:', arjsSys._arSession.parameters.cameraPara);
-            });
-        }
+  setupButton() {
+    const btn = document.getElementById('screenshot-btn');
+    btn.addEventListener('click', () => this.capture());
+  }
 
-        // ===== [4. Captura de pantalla] =====
-        class ScreenshotTaker {
-            constructor() {
-                this.mergeCanvas = document.createElement('canvas');
-                this.mergeCtx = this.mergeCanvas.getContext('2d');
-                this.setupButton();
-            }
+  async capture() {
+    try {
+      const { video, arCanvas } = this.getElements();
+      await this.prepareCanvas(video, arCanvas);
+      this.saveToGallery();
+    } catch (error) {
+      console.error('Capture failed:', error);
+    }
+  }
 
-            setupButton() {
-                const btn = document.getElementById('screenshot-btn');
-                btn.addEventListener('click', () => this.capture());
-            }
+  getElements() {
+    return {
+      video: document.querySelector('[arjs-video]') || document.querySelector('video'),
+      arCanvas: document.querySelector('canvas')
+    };
+  }
 
-            async capture() {
-                try {
-                    const { video, arCanvas } = this.getElements();
-                    await this.prepareCanvas(video, arCanvas);
-                    this.saveToGallery();
-                } catch (error) {
-                    console.error('Capture failed:', error);
-                }
-            }
+  prepareCanvas(video, arCanvas) {
+    return new Promise(resolve => {
+      // Corregir dimensiones
+      this.mergeCanvas.width = arCanvas.width;
+      this.mergeCanvas.height = arCanvas.height;
+      
+      // Eliminar el escalado manual
+      this.mergeCtx.drawImage(video, 0, 0, this.mergeCanvas.width, this.mergeCanvas.height);
+      this.mergeCtx.drawImage(arCanvas, 0, 0, this.mergeCanvas.width, this.mergeCanvas.height);
+      resolve();
+    });
+  }
 
-            getElements() {
-                return {
-                    video: document.querySelector('[arjs-video]') || document.querySelector('video'),
-                    arCanvas: document.querySelector('canvas')
-                };
-            }
+  saveToGallery() {
+    this.mergeCanvas.toBlob(blob => {
+      const file = new File([blob], `AR-${Date.now()}.png`, { type: 'image/png' });
+      
+      // Usar Web Share API para iOS
+      if (navigator.share) {
+        navigator.share({
+          files: [file],
+          title: 'AR Capture'
+        }).catch(console.error);
+      } else {
+        // Método alternativo para Android
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.download = file.name;
+        link.href = url;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      }
+    }, 'image/png');
+  }
+}
 
-            prepareCanvas(video, arCanvas) {
-                return new Promise(resolve => {
-                    this.mergeCanvas.width = arCanvas.width;
-                    this.mergeCanvas.height = arCanvas.height;
-                    
-                    this.mergeCtx.drawImage(video, 0, 0, this.mergeCanvas.width, this.mergeCanvas.height);
-                    this.mergeCtx.drawImage(arCanvas, 0, 0, this.mergeCanvas.width, this.mergeCanvas.height);
-                    resolve();
-                });
-            }
-
-            saveToGallery() {
-                this.mergeCanvas.toBlob(blob => {
-                    const file = new File([blob], `AR-${Date.now()}.png`, { type: 'image/png' });
-                    
-                    if (navigator.share) {
-                        navigator.share({
-                            files: [file],
-                            title: 'AR Capture'
-                        }).catch(console.error);
-                    } else {
-                        const url = URL.createObjectURL(blob);
-                        const link = document.createElement('a');
-                        link.download = file.name;
-                        link.href = url;
-                        document.body.appendChild(link);
-                        link.click();
-                        document.body.removeChild(link);
-                        URL.revokeObjectURL(url);
-                    }
-                }, 'image/png');
-            }
-        }
-
-        // Inicializar después de que cargue A-Frame
-        document.querySelector('a-scene').addEventListener('loaded', () => {
-            new ScreenshotTaker();
-        });
+// Inicializar después de que cargue A-Frame
+document.querySelector('a-scene').addEventListener('loaded', () => {
+  new ScreenshotTaker();
+});
     </script>
 </body>
 </html>
