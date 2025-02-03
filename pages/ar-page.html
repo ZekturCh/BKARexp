@@ -2,10 +2,11 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AR Mobile</title>
-    <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script> <!-- Versión actualizada -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AR - Manipulación de Modelo 3D</title>
+    <script src="https://aframe.io/releases/1.0.4/aframe.min.js"></script>
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+    <script src="https://raw.githack.com/donmccurdy/aframe-extras/master/dist/aframe-extras.loaders.min.js"></script>
     <style>
         body { margin: 0; overflow: hidden; }
         #buttons {
@@ -27,121 +28,99 @@
             transition: background 0.3s;
         }
         .active {
-            background: #28a745 !important;
-        }
-        #screenshot-btn {
-            background: #dc3545;
+            background: #28a745 !important; /* Verde */
         }
     </style>
 </head>
 <body>
-   <a-scene id="scene" embedded arjs="sourceType: webcam; facingMode: user; detectionMode: mono_and_matrix; matrixCodeType: 3x3;">
-  <a-marker preset="hiro">
-    <a-entity id="model-container" gltf-model="#model" position="0 0 -2" scale="1 1 1"></a-entity>
-  </a-marker>
-  <a-entity camera></a-entity>
-</a-scene>
+    <a-scene id="scene" embedded arjs="sourceType: webcam; facingMode: user;">
+        <a-assets>
+            <a-asset-item id="model" src="https://zekturch.github.io/BKARexp/assets/asset.glb"></a-asset-item>
+        </a-assets>
+        <a-entity id="model-container" gltf-model="#model" position="0 0 -2" scale="1 1 1"></a-entity>
+        <a-camera position="0 1.6 0"></a-camera>
+    </a-scene>
 
     <div id="buttons">
         <button id="move-btn">Mover</button>
         <button id="rotate-btn">Rotar</button>
         <button id="scale-btn">Escalar</button>
-        <button id="screenshot-btn">Capturar</button>
     </div>
 
     <script>
-        // ===== [1. Verificar carga del modelo] =====
-        document.querySelector('#model-container').addEventListener('model-loaded', () => {
-            console.log('Modelo 3D cargado!');
-            document.querySelector('#model-container').setAttribute('visible', 'true');
-        });
-
-        // ===== [2. Configuración AR.js optimizada] =====
-        AFRAME.registerComponent('gesture-detector', {
-            init: function() {
-                this.scene = document.querySelector('a-scene');
-                this.initialScale = 0.3;
-                
-                // Esperar a que AR.js esté listo
-                this.scene.addEventListener('arReady', () => {
-                    console.log('AR.js inicializado correctamente!');
-                    this.model = document.querySelector('#model-container');
-                    this.model.setAttribute('position', '0 0 -1');
-                });
+window.onload = function () {
+            if (sessionStorage.getItem("accesoPermitido") !== "true") {
+                alert("Acceso denegado. Primero ingresa un código válido.");
+                window.location.href = "index.html"; // Redirige a la página de registro
             }
-        });
+        };
+        let model = document.getElementById("model-container");
+        let mode = "";
+        let lastX, lastY;
+        let useFrontCamera = false; // Estado de la cámara (false = trasera, true = frontal)
 
-   class ScreenshotTaker {
-  constructor() {
-    this.mergeCanvas = document.createElement('canvas');
-    this.mergeCtx = this.mergeCanvas.getContext('2d');
-    this.setupButton();
-  }
+        // Guardar referencia a los botones
+        let moveBtn = document.getElementById("move-btn");
+        let rotateBtn = document.getElementById("rotate-btn");
+        let scaleBtn = document.getElementById("scale-btn");
 
-  setupButton() {
-    const btn = document.getElementById('screenshot-btn');
-    btn.addEventListener('click', () => this.capture());
-  }
+        
 
-  async capture() {
-    try {
-      const { video, arCanvas } = this.getElements();
-      await this.prepareCanvas(video, arCanvas);
-      this.saveToGallery();
-    } catch (error) {
-      console.error('Capture failed:', error);
-    }
-  }
+        // ✅ Función para cambiar modo y actualizar estilos
+        function setMode(newMode, button) {
+            mode = newMode;
+            // 🔥 Quita la clase "active" de todos los botones
+            document.querySelectorAll("#buttons button").forEach(btn => btn.classList.remove("active"));
+            // ✅ Agrega la clase "active" al botón seleccionado
+            button.classList.add("active");
+        }
 
-  getElements() {
-    return {
-      video: document.querySelector('[arjs-video]') || document.querySelector('video'),
-      arCanvas: document.querySelector('canvas')
-    };
-  }
+        // Asignar eventos a los botones
+        moveBtn.addEventListener("click", () => setMode("move", moveBtn));
+        rotateBtn.addEventListener("click", () => setMode("rotate", rotateBtn));
+        scaleBtn.addEventListener("click", () => setMode("scale", scaleBtn));
 
-  prepareCanvas(video, arCanvas) {
-    return new Promise(resolve => {
-      // Corregir dimensiones
-      this.mergeCanvas.width = arCanvas.width;
-      this.mergeCanvas.height = arCanvas.height;
-      
-      // Eliminar el escalado manual
-      this.mergeCtx.drawImage(video, 0, 0, this.mergeCanvas.width, this.mergeCanvas.height);
-      this.mergeCtx.drawImage(arCanvas, 0, 0, this.mergeCanvas.width, this.mergeCanvas.height);
-      resolve();
-    });
-  }
+        function handleMove(event) {
+            if (!mode) return;
 
-  saveToGallery() {
-    this.mergeCanvas.toBlob(blob => {
-      const file = new File([blob], `AR-${Date.now()}.png`, { type: 'image/png' });
-      
-      // Usar Web Share API para iOS
-      if (navigator.share) {
-        navigator.share({
-          files: [file],
-          title: 'AR Capture'
-        }).catch(console.error);
-      } else {
-        // Método alternativo para Android
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.download = file.name;
-        link.href = url;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-      }
-    }, 'image/png');
-  }
-}
+            let clientX = event.touches ? event.touches[0].clientX : event.clientX;
+            let clientY = event.touches ? event.touches[0].clientY : event.clientY;
 
-// Inicializar después de que cargue A-Frame
-document.querySelector('a-scene').addEventListener('loaded', () => {
-  new ScreenshotTaker();
-});
+            if (lastX === undefined || lastY === undefined) {
+                lastX = clientX;
+                lastY = clientY;
+                return;
+            }
+
+            let deltaX = (clientX - lastX) * 0.5;
+            let deltaY = (clientY - lastY) * 0.5;
+
+            let pos = model.getAttribute("position");
+            let rot = model.getAttribute("rotation");
+            let scale = model.getAttribute("scale");
+
+            if (mode === "move") {
+                model.setAttribute("position", `${pos.x + deltaX * 0.01} ${pos.y - deltaY * 0.01} ${pos.z}`);
+            } else if (mode === "rotate") {
+                model.setAttribute("rotation", `${rot.x - deltaY} ${rot.y + deltaX} ${rot.z}`);
+            } else if (mode === "scale") {
+                let newScale = Math.max(0.2, scale.x + deltaY * 0.01);
+                model.setAttribute("scale", `${newScale} ${newScale} ${newScale}`);
+            }
+
+            lastX = clientX;
+            lastY = clientY;
+        }
+
+        function resetLastTouch() {
+            lastX = undefined;
+            lastY = undefined;
+        }
+
+        document.addEventListener("mousemove", handleMove);
+        document.addEventListener("touchmove", handleMove);
+        document.addEventListener("mouseup", resetLastTouch);
+        document.addEventListener("touchend", resetLastTouch);
     </script>
 </body>
 </html>
