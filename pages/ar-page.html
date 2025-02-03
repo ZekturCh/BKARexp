@@ -35,7 +35,7 @@
 <body>
     <a-scene id="scene" embedded arjs="sourceType: webcam; facingMode: user;">
         <a-assets>
-            <a-asset-item id="model" src="https://zekturch.github.io/BKARexp/assets/asset.glb"></a-asset-item>
+            <a-asset-item id="model" src="https://zekturch.github.io/BKARexp/assets/asset2.glb"></a-asset-item>
         </a-assets>
         <a-entity id="model-container" gltf-model="#model" position="0 0 -2" scale="1 1 1"></a-entity>
         <a-camera position="0 1.6 0"></a-camera>
@@ -45,24 +45,18 @@
         <button id="move-btn">Mover</button>
         <button id="rotate-btn">Rotar</button>
         <button id="scale-btn">Escalar</button>
-        <button id="switch-camera">Cambiar Cámara</button>
-        <button id="capture-btn">Capturar y Compartir</button>
+        <button id="capture-btn">Capturar</button>
     </div>
 
     <script>
-        // Añadir al inicio del script
-AFRAME.registerComponent('optimize-model', {
-    init: function () {
-        this.el.getObject3D('mesh').traverse(node => {
-            if (node.isMesh) {
-                node.material.needsUpdate = true;
-                node.castShadow = false;
-                node.receiveShadow = false;
-            }
-        });
-    }
-});
+scene.renderer.alpha = true; // Mantener fondo transparente
+scene.renderer.autoClear = false; // Evitar limpiar buffer
 
+// Para dispositivos móviles, añadir meta tag
+document.head.innerHTML += `
+<meta name="viewport" content="width=device-width, user-scalable=no, 
+    initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">`;
+//COMPROBAR LOG PERMITIDO Y CÓDIGO DE FUNCIÓN
 window.onload = function () {
             if (sessionStorage.getItem("accesoPermitido") !== "true") {
                 alert("Acceso denegado. Primero ingresa un código válido.");
@@ -137,99 +131,36 @@ window.onload = function () {
         document.addEventListener("mouseup", resetLastTouch);
         document.addEventListener("touchend", resetLastTouch);
 
-       // ✅ Configuración inicial de cámara
-let currentCamera = 'user'; // 'user' = frontal, 'environment' = trasera
-const arjsConfig = {
-    sourceType: 'webcam',
-    facingMode: currentCamera,
-    debugUIEnabled: false
-};
 
-// ✅ Función para reiniciar la escena AR
-function restartARScene() {
-    const oldScene = document.querySelector('a-scene');
-    if (oldScene) {
-        oldScene.parentNode.removeChild(oldScene);
-    }
-
-    const newScene = document.createElement('a-scene');
-    newScene.setAttribute('embedded', '');
-    newScene.setAttribute('arjs', `sourceType: ${arjsConfig.sourceType}; facingMode: ${arjsConfig.facingMode}; debugUIEnabled: ${arjsConfig.debugUIEnabled};`);
-    
-    // Recrear elementos de la escena
-    newScene.innerHTML = `
-        <a-assets>
-            <a-asset-item id="model" src="https://zekturch.github.io/BKARexp/assets/asset2.glb"></a-asset-item>
-        </a-assets>
-        <a-entity id="model-container" gltf-model="#model" position="0 0 -2" scale="1 1 1"></a-entity>
-        <a-camera position="0 1.6 0"></a-camera>
-    `;
-
-    document.body.insertBefore(newScene, document.body.firstChild);
-    
-    // Reconfigurar renderer
-    newScene.addEventListener('loaded', () => {
-        newScene.renderer.alpha = true;
-        newScene.renderer.autoClear = false;
-        model = document.getElementById("model-container");
-    });
-}
-
-// ✅ Evento para cambiar cámara
-document.getElementById('switch-camera').addEventListener('click', () => {
-    currentCamera = currentCamera === 'user' ? 'environment' : 'user';
-    arjsConfig.facingMode = currentCamera;
-    restartARScene();
-});
-
-// ✅ Función mejorada de captura con compartir
-document.getElementById('capture-btn').addEventListener('click', async () => {
+// ✅ Nuevo código para captura
+document.getElementById('capture-btn').addEventListener('click', () => {
+    const video = document.querySelector('video'); // Elemento de video de AR.js
     const scene = document.querySelector('a-scene');
-    const video = document.querySelector('video');
     
-    // 1. Capturar componentes
+    // 1. Capturar canvas del modelo 3D
     const modelCanvas = scene.components.screenshot.getCanvas('perspective');
+    
+    // 2. Capturar frame de la cámara
     const videoCanvas = document.createElement('canvas');
     videoCanvas.width = video.videoWidth;
     videoCanvas.height = video.videoHeight;
     videoCanvas.getContext('2d').drawImage(video, 0, 0);
     
-    // 2. Combinar capas
+    // 3. Combinar ambos canvas
     const finalCanvas = document.createElement('canvas');
     finalCanvas.width = videoCanvas.width;
     finalCanvas.height = videoCanvas.height;
     const ctx = finalCanvas.getContext('2d');
-    ctx.drawImage(videoCanvas, 0, 0);
-    ctx.drawImage(modelCanvas, 0, 0, finalCanvas.width, finalCanvas.height);
     
-    // 3. Preparar archivo para compartir
-    finalCanvas.toBlob(async (blob) => {
-        const file = new File([blob], 'ARcaptura.png', { type: 'image/png' });
-        
-        try {
-            if (navigator.share) {
-                await navigator.share({
-                    files: [file],
-                    title: 'Mi creación AR',
-                    text: '¡Mira lo que hice con realidad aumentada!'
-                });
-            } else {
-                // Fallback para navegadores sin soporte de share
-                const link = document.createElement('a');
-                link.download = 'ARcaptura.png';
-                link.href = URL.createObjectURL(file);
-                link.click();
-            }
-        } catch (err) {
-            console.log('Error al compartir:', err);
-        }
-    }, 'image/png');
+    ctx.drawImage(videoCanvas, 0, 0); // Fondo cámara
+    ctx.drawImage(modelCanvas, 0, 0, finalCanvas.width, finalCanvas.height); // Modelo 3D
+    
+    // 4. Descargar imagen
+    const link = document.createElement('a');
+    link.download = 'ar-capture.png';
+    link.href = finalCanvas.toDataURL();
+    link.click();
 });
-
-// ✅ Actualizar el meta viewport (añadir al head)
-document.head.innerHTML += `
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<meta name="mobile-web-app-capable" content="yes">`;
     </script>
 </body>
 </html>
