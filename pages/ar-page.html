@@ -127,13 +127,19 @@
             
 
            // Captura de pantalla
-           document.getElementById('capture-btn').addEventListener('click', async () => {
+          document.getElementById('capture-btn').addEventListener('click', async () => {
     const scene = document.querySelector('a-scene');
     const video = document.querySelector('video');
 
-    // Ajustar proporciones del canvas al tamaño del video
-    const aspectRatio = video.videoWidth / video.videoHeight;
-    const width = Math.min(video.videoWidth, window.innerWidth);
+    // Obtener dimensiones del video
+    const videoWidth = video.videoWidth;
+    const videoHeight = video.videoHeight;
+
+    // Calcular proporciones
+    const aspectRatio = videoWidth / videoHeight;
+
+    // Establecer dimensiones del canvas para mantener la relación de aspecto
+    const width = Math.min(videoWidth, window.innerWidth);
     const height = width / aspectRatio;
 
     // Crear canvas para capturar el video
@@ -141,18 +147,25 @@
     videoCanvas.width = width;
     videoCanvas.height = height;
     const ctxVideo = videoCanvas.getContext('2d');
+    
+    // Dibujar el video en el canvas
     ctxVideo.drawImage(video, 0, 0, width, height);
 
     // Capturar modelo 3D
     const modelCanvas = scene.components.screenshot.getCanvas('perspective');
 
-    // Combinar capas en un canvas final
+    // Crear un canvas final para combinar ambas imágenes
     const finalCanvas = document.createElement('canvas');
     finalCanvas.width = width;
     finalCanvas.height = height;
+    
     const ctxFinal = finalCanvas.getContext('2d');
+
+    // Dibujar primero el canvas del video
     ctxFinal.drawImage(videoCanvas, 0, 0);
-    ctxFinal.drawImage(modelCanvas, 0, 0, width, height);
+
+    // Ajustar la posición y tamaño del modelo 3D en el canvas final
+    ctxFinal.drawImage(modelCanvas, 0, 0, width, height); // Ajusta esto según sea necesario
 
     // Descargar o compartir la imagen
     finalCanvas.toBlob(async (blob) => {
