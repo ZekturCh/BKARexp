@@ -131,36 +131,149 @@ document.head.innerHTML += `
         document.addEventListener("mouseup", resetLastTouch);
         document.addEventListener("touchend", resetLastTouch);
 
+AFRAME.registerComponent('optimize-model', {
+    init: function () {
+        this.el.getObject3D('mesh').traverse(node => {
+            if (node.isMesh) {
+                node.material.needsUpdate = true;
+                node.castShadow = false;
+                node.receiveShadow = false;
+            }
+        });
+    }
+});
 
-// ✅ Nuevo código para captura
-document.getElementById('capture-btn').addEventListener('click', () => {
-    const video = document.querySelector('video'); // Elemento de video de AR.js
-    const scene = document.querySelector('a-scene');
+window.onload = function () {
+    if (sessionStorage.getItem("accesoPermitido") !== "true") {
+        alert("Acceso denegado. Primero ingresa un código válido.");
+        window.location.href = "index.html"; // Redirige a la página de registro
+    }
+
+    initializeAR(); // Inicializar AR al cargar
+
+    // Guardar referencia a los botones
+    let moveBtn = document.getElementById("move-btn");
+    let rotateBtn = document.getElementById("rotate-btn");
+    let scaleBtn = document.getElementById("scale-btn");
+
+    // Asignar eventos a los botones
+    moveBtn.addEventListener("click", () => setMode("move", moveBtn));
+    rotateBtn.addEventListener("click", () => setMode("rotate", rotateBtn));
+    scaleBtn.addEventListener("click", () => setMode("scale", scaleBtn));
+
+    // Evento para cambiar cámara
+    document.getElementById('switch-camera').addEventListener('click', () => {
+        currentCamera = currentCamera === 'user' ? 'environment' : 'user';
+        initializeAR();
+    });
+
+    // Evento para captura de pantalla
+    document.getElementById('capture-btn').addEventListener('click', async () => {
+        await captureAndShare();
+    });
+};
+
+// Variables globales
+let currentCamera = 'user'; // 'user' = frontal, 'environment' = trasera
+let activeStream = null;
+
+// Función para inicializar AR
+function initializeAR() {
+    if (activeStream) {
+        activeStream.getTracks().forEach(track => track.stop());
+    }
+
+    const constraints = {
+        video: {
+            facingMode: { exact: currentCamera },
+            width: { ideal: 1280 },
+            height: { ideal: 720 }
+        }
+    };
+
+    navigator.mediaDevices.getUserMedia(constraints)
+        .then(stream => {
+            activeStream = stream;
+            const videoElement = document.querySelector('video');
+            videoElement.srcObject = stream;
+            videoElement.play();
+            restartARScene(); // Reiniciar escena después de obtener el stream
+        })
+        .catch(error => console.error('Error al acceder a la cámara:', error));
+}
+
+// Función para reiniciar la escena AR
+function restartARScene() {
+    const oldScene = document.querySelector('a-scene');
+    if (oldScene) {
+        oldScene.parentNode.removeChild(oldScene);
+    }
+
+    const newScene = document.createElement('a-scene');
+    newScene.setAttribute('embedded', '');
+    newScene.setAttribute('arjs', `sourceType: webcam; facingMode: ${currentCamera}; debugUIEnabled: false;`);
+
+    newScene.innerHTML = `
+        <a-assets>
+            <a-asset-item id="model" src="https://zekturch.github.io/BKARexp/assets/asset2.glb"></a-asset-item>
+        </a-assets>
+        <a-entity id="model-container" gltf-model="#model" position="0 0 -2" scale="1 1 1"></a-entity>
+        <a-camera position="0 1.6 0"></a-camera>
+    `;
     
-    // 1. Capturar canvas del modelo 3D
+    document.body.insertBefore(newScene, document.body.firstChild);
+}
+
+// Función para capturar y compartir imagen
+async function captureAndShare() {
+    const scene = document.querySelector('a-scene');
+    const video = document.querySelector('video');
+
     const modelCanvas = scene.components.screenshot.getCanvas('perspective');
     
-    // 2. Capturar frame de la cámara
     const videoCanvas = document.createElement('canvas');
     videoCanvas.width = video.videoWidth;
     videoCanvas.height = video.videoHeight;
+    
     videoCanvas.getContext('2d').drawImage(video, 0, 0);
     
-    // 3. Combinar ambos canvas
     const finalCanvas = document.createElement('canvas');
     finalCanvas.width = videoCanvas.width;
     finalCanvas.height = videoCanvas.height;
+    
     const ctx = finalCanvas.getContext('2d');
     
-    ctx.drawImage(videoCanvas, 0, 0); // Fondo cámara
-    ctx.drawImage(modelCanvas, 0, 0, finalCanvas.width, finalCanvas.height); // Modelo 3D
+    ctx.drawImage(videoCanvas, 0, 0);
+    ctx.drawImage(modelCanvas, 0, 0, finalCanvas.width, finalCanvas.height);
     
-    // 4. Descargar imagen
-    const link = document.createElement('a');
-    link.download = 'ar-capture.png';
-    link.href = finalCanvas.toDataURL();
-    link.click();
-});
+    finalCanvas.toBlob(async (blob) => {
+        const file = new File([blob], 'ARcaptura.png', { type: 'image/png' });
+        
+        try {
+            if (navigator.share) {
+                await navigator.share({
+                    files: [file],
+                    title: 'Mi creación AR',
+                    text: '¡Mira lo que hice con realidad aumentada!'
+                });
+            } else {
+                const link = document.createElement('a');
+                link.download = 'ARcaptura.png';
+                link.href = URL.createObjectURL(file);
+                link.click();
+            }
+        } catch (err) {
+            console.log('Error al compartir:', err);
+        }
+        
+    }, 'image/png');
+}
+
+// Meta viewport para móviles
+document.head.innerHTML += `
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">`;
+</script>
     </script>
 </body>
 </html>
