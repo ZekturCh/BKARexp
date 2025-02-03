@@ -128,43 +128,54 @@
 
            // Captura de pantalla
            document.getElementById('capture-btn').addEventListener('click', async () => {
-               const scene = document.querySelector('a-scene');
-               const video = document.querySelector('video');
+    const scene = document.querySelector('a-scene');
+    const video = document.querySelector('video');
 
-               const modelCanvas = scene.components.screenshot.getCanvas('perspective');
-               const videoCanvas = document.createElement('canvas');
-               videoCanvas.width = video.videoWidth;
-               videoCanvas.height = video.videoHeight;
-               videoCanvas.getContext('2d').drawImage(video, 0, 0);
+    // Ajustar proporciones del canvas al tamaño del video
+    const aspectRatio = video.videoWidth / video.videoHeight;
+    const width = Math.min(video.videoWidth, window.innerWidth);
+    const height = width / aspectRatio;
 
-               const finalCanvas = document.createElement('canvas');
-               finalCanvas.width = videoCanvas.width;
-               finalCanvas.height = videoCanvas.height;
+    // Crear canvas para capturar el video
+    const videoCanvas = document.createElement('canvas');
+    videoCanvas.width = width;
+    videoCanvas.height = height;
+    const ctxVideo = videoCanvas.getContext('2d');
+    ctxVideo.drawImage(video, 0, 0, width, height);
 
-               const ctx = finalCanvas.getContext('2d');
-               ctx.drawImage(videoCanvas, 0, 0);
-               ctx.drawImage(modelCanvas, 0, 0, finalCanvas.width, finalCanvas.height);
+    // Capturar modelo 3D
+    const modelCanvas = scene.components.screenshot.getCanvas('perspective');
 
-               finalCanvas.toBlob(async (blob) => {
-                   const file = new File([blob], 'ARcaptura.png', { type: 'image/png' });
-                   try {
-                       if (navigator.share) {
-                           await navigator.share({
-                               files: [file],
-                               title: 'Mi creación AR',
-                               text: '¡Mira lo que hice con realidad aumentada!'
-                           });
-                       } else {
-                           const link = document.createElement('a');
-                           link.download = 'ARcaptura.png';
-                           link.href = URL.createObjectURL(file);
-                           link.click();
-                       }
-                   } catch (err) {
-                       console.log('Error al compartir:', err);
-                   }
-               }, 'image/png');
-           });
+    // Combinar capas en un canvas final
+    const finalCanvas = document.createElement('canvas');
+    finalCanvas.width = width;
+    finalCanvas.height = height;
+    const ctxFinal = finalCanvas.getContext('2d');
+    ctxFinal.drawImage(videoCanvas, 0, 0);
+    ctxFinal.drawImage(modelCanvas, 0, 0, width, height);
+
+    // Descargar o compartir la imagen
+    finalCanvas.toBlob(async (blob) => {
+        const file = new File([blob], 'ARcaptura.png', { type: 'image/png' });
+
+        try {
+            if (navigator.share) {
+                await navigator.share({
+                    files: [file],
+                    title: 'Mi creación AR',
+                    text: '¡Mira lo que hice con realidad aumentada!'
+                });
+            } else {
+                const link = document.createElement('a');
+                link.download = 'ARcaptura.png';
+                link.href = URL.createObjectURL(file);
+                link.click();
+            }
+        } catch (err) {
+            console.error('Error al compartir:', err);
+        }
+    }, 'image/png');
+});
         };
     </script>
 </body>
