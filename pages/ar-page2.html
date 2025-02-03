@@ -44,6 +44,59 @@
     </div>
 
     <script>
+        // Variables para manipulación del modelo
+        let model = document.getElementById("model-container");
+        let mode = "";
+        let lastX, lastY;
+
+        function setMode(newMode, button) {
+            mode = newMode;
+            document.querySelectorAll("#buttons button").forEach(btn => btn.classList.remove("active"));
+            button.classList.add("active");
+        }
+
+        document.getElementById("move-btn").addEventListener("click", (e) => setMode("move", e.target));
+        document.getElementById("rotate-btn").addEventListener("click", (e) => setMode("rotate", e.target));
+        document.getElementById("scale-btn").addEventListener("click", (e) => setMode("scale", e.target));
+
+        function handleMove(event) {
+            if (!mode) return;
+            let clientX = event.touches ? event.touches[0].clientX : event.clientX;
+            let clientY = event.touches ? event.touches[0].clientY : event.clientY;
+            if (lastX === undefined || lastY === undefined) {
+                lastX = clientX;
+                lastY = clientY;
+                return;
+            }
+            let deltaX = (clientX - lastX) * 0.5;
+            let deltaY = (clientY - lastY) * 0.5;
+            let pos = model.getAttribute("position");
+            let rot = model.getAttribute("rotation");
+            let scale = model.getAttribute("scale");
+
+            if (mode === "move") {
+                model.setAttribute("position", `${pos.x + deltaX * 0.01} ${pos.y - deltaY * 0.01} ${pos.z}`);
+            } else if (mode === "rotate") {
+                model.setAttribute("rotation", `${rot.x - deltaY} ${rot.y + deltaX} ${rot.z}`);
+            } else if (mode === "scale") {
+                let newScale = Math.max(0.2, scale.x + deltaY * 0.01);
+                model.setAttribute("scale", `${newScale} ${newScale} ${newScale}`);
+            }
+
+            lastX = clientX;
+            lastY = clientY;
+        }
+
+        function resetLastTouch() {
+            lastX = undefined;
+            lastY = undefined;
+        }
+
+        document.addEventListener("mousemove", handleMove);
+        document.addEventListener("touchmove", handleMove);
+        document.addEventListener("mouseup", resetLastTouch);
+        document.addEventListener("touchend", resetLastTouch);
+
         document.getElementById("capture-btn").addEventListener("click", takeScreenshot);
 
         async function takeScreenshot() {
