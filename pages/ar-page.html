@@ -113,9 +113,9 @@ async function captureModel() {
 
         let img = new Image();
         img.onload = () => {
-            ctx.clearRect(0, 0, tempCanvas.width, tempCanvas.height);
+            ctx.clearRect(0, 0, tempCanvas.width, tempCanvas.height); // Asegurar transparencia
             ctx.drawImage(img, 0, 0);
-            resolve(tempCanvas.toDataURL("image/png"));
+            resolve(tempCanvas.toDataURL("image/png")); // Retornar imagen con transparencia
         };
         img.onerror = reject;
         img.src = rendererCanvas.toDataURL("image/png");
@@ -137,7 +137,8 @@ function mergeImages(background, overlay) {
             ctx.drawImage(img1, 0, 0); // Dibujar la cámara
 
             img2.onload = () => {
-                ctx.drawImage(img2, 0, 0, img1.width, img1.height); // Dibujar el modelo 3D encima
+                ctx.globalAlpha = 1.0; // Asegurar que el modelo se vea bien
+                ctx.drawImage(img2, 0, 0, img1.width, img1.height); // Dibujar el modelo encima
                 resolve(canvas.toDataURL("image/png"));
             };
             img2.onerror = reject;
@@ -147,7 +148,6 @@ function mergeImages(background, overlay) {
         img1.src = background;
     });
 }
-
 // Descargar y compartir la imagen final
 function downloadAndShare(imgData) {
     let link = document.createElement("a");
