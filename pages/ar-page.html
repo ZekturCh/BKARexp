@@ -46,7 +46,8 @@
         <button id="move-btn">Mover</button>
         <button id="rotate-btn">Rotar</button>
         <button id="scale-btn">Escalar</button>
-        <button id="capture-btn">Capturar</button>
+        <button id="capture-btn">Capturar</button>switch-camera
+        <button id="switch-camera">Cambiar</button>
     </div>
 
     <script>
@@ -123,7 +124,16 @@
             document.addEventListener("touchmove", handleMove);
             document.addEventListener("mouseup", resetLastTouch);
             document.addEventListener("touchend", resetLastTouch);
+            
+// Cambiar cámara
+document.getElementById('switch-camera').addEventListener('click', () => {
+    currentCamera = currentCamera === 'environment' ? 'user' : 'environment';
+    
+    const scene = document.querySelector('a-scene');
+    scene.setAttribute('arjs', `sourceType: webcam; facingMode: ${currentCamera}; debugUIEnabled: false;`);
 
+    console.log(`Cámara cambiada a: ${currentCamera}`);
+}); 
             
 
            // Captura de pantalla
@@ -165,7 +175,7 @@
     ctxFinal.drawImage(videoCanvas, 0, 0);
 
     // Ajustar la escala horizontal del modelo (aumentar ancho en un 7%)
-    const adjustedWidth = width * 1.07; // Aumentar ancho en un 7%
+    const adjustedWidth = width * 1.21; // Aumentar ancho en un 7%
     const adjustedX = (width - adjustedWidth) / 2; // Centrar el modelo ajustado
 
     // Dibujar el modelo escalado horizontalmente en el canvas final
