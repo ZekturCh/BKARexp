@@ -55,47 +55,131 @@
     </div>
 
    <script>
-document.getElementById("capture-btn").addEventListener("click", async () => {
+async function takeScreenshot() {
     try {
-        const scene = document.querySelector("a-scene");
-        
-        // 1. Esperar a que AR.js esté completamente inicializado
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
-        // 2. Acceder a los canvas de forma más precisa
-        const arCanvas = document.querySelector('.a-canvas[data-aframe-arjs]');
-        const webglCanvas = scene.renderer.domElement;
-        
-        if (!arCanvas || !webglCanvas) {
-            throw new Error("Canvas no encontrados. Intenta recargar la página.");
-        }
-        
-        // 3. Crear canvas combinado
-        const finalCanvas = document.createElement('canvas');
-        finalCanvas.width = arCanvas.width;
-        finalCanvas.height = arCanvas.height;
-        const ctx = finalCanvas.getContext('2d');
-        
-        // 4. Dibujar en orden correcto
-        ctx.drawImage(arCanvas, 0, 0); // Fondo de la cámara
-        ctx.globalCompositeOperation = 'source-over';
-        ctx.drawImage(webglCanvas, 0, 0); // Modelo 3D
-        
-        // 5. Crear y descargar imagen
-        finalCanvas.toBlob(blob => {
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `ar-capture-${Date.now()}.png`;
-            a.click();
-            setTimeout(() => URL.revokeObjectURL(url), 1000);
-        }, 'image/png');
-        
+        // 1️⃣ Capturar la imagen de la cámara
+        let cameraImage = await captureCamera();
+
+        // 2️⃣ Renderizar el modelo 3D como una imagen sin fondo
+        let modelImage = await captureModel();
+
+        // 3️⃣ Fusionar ambas imágenes en un solo canvas
+        let finalImage = mergeImages(cameraImage, modelImage);
+
+        // 4️⃣ Descargar y compartir la imagen
+        downloadAndShare(finalImage);
+
     } catch (error) {
-        console.error("Error de captura:", error);
-        alert("Error: " + error.message);
+        console.error("Error al tomar la captura:", error);
     }
-});
+}
+
+// Función para capturar lo que ve la cámara
+async function captureCamera() {
+    return new Promise(async (resolve, reject) => {
+        try {
+            let video = document.createElement("video");
+            let stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            video.srcObject = stream;
+            await video.play();
+
+            let canvas = document.createElement("canvas");
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            let ctx = canvas.getContext("2d");
+
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            let image = canvas.toDataURL("image/png");
+
+            stream.getTracks().forEach(track => track.stop()); // Detener la cámara
+            resolve(image);
+        } catch (error) {
+            reject(error);
+        }
+    });
+}
+
+// Función para capturar el modelo 3D sin fondo
+async function captureModel() {
+    return new Promise((resolve, reject) => {
+        let scene = document.querySelector("a-scene");
+        let rendererCanvas = scene.renderer.domElement;
+
+        // Crear un canvas temporal sin fondo
+        let tempCanvas = document.createElement("canvas");
+        tempCanvas.width = rendererCanvas.width;
+        tempCanvas.height = rendererCanvas.height;
+        let ctx = tempCanvas.getContext("2d");
+
+        let img = new Image();
+        img.onload = () => {
+            ctx.clearRect(0, 0, tempCanvas.width, tempCanvas.height);
+            ctx.drawImage(img, 0, 0);
+            resolve(tempCanvas.toDataURL("image/png"));
+        };
+        img.onerror = reject;
+        img.src = rendererCanvas.toDataURL("image/png");
+    });
+}
+
+// Función para unir ambas imágenes en una sola
+function mergeImages(background, overlay) {
+    let canvas = document.createElement("canvas");
+    let ctx = canvas.getContext("2d");
+
+    let img1 = new Image();
+    let img2 = new Image();
+
+    return new Promise((resolve, reject) => {
+        img1.onload = () => {
+            canvas.width = img1.width;
+            canvas.height = img1.height;
+            ctx.drawImage(img1, 0, 0); // Dibujar la cámara
+
+            img2.onload = () => {
+                ctx.drawImage(img2, 0, 0, img1.width, img1.height); // Dibujar el modelo 3D encima
+                resolve(canvas.toDataURL("image/png"));
+            };
+            img2.onerror = reject;
+            img2.src = overlay;
+        };
+        img1.onerror = reject;
+        img1.src = background;
+    });
+}
+
+// Descargar y compartir la imagen final
+function downloadAndShare(imgData) {
+    let link = document.createElement("a");
+    link.href = imgData;
+    link.download = "screenshot.png";
+    link.click();
+
+    if (navigator.share) {
+        navigator.share({
+            title: "AR Screenshot",
+            text: "Mira mi captura en realidad aumentada",
+            files: [new File([dataURItoBlob(imgData)], "screenshot.png", { type: "image/png" })]
+        }).catch(console.error);
+    } else {
+        alert("Captura guardada. Comparte manualmente.");
+    }
+}
+
+// Convertir Data URL a Blob
+function dataURItoBlob(dataURI) {
+    let byteString = atob(dataURI.split(",")[1]);
+    let mimeString = dataURI.split(",")[0].split(":")[1].split(";")[0];
+    let ab = new ArrayBuffer(byteString.length);
+    let ia = new Uint8Array(ab);
+    for (let i = 0; i < byteString.length; i++) {
+        ia[i] = byteString.charCodeAt(i);
+    }
+    return new Blob([ab], { type: mimeString });
+}
+
+// Asignar la función al botón
+document.getElementById("capture-btn").addEventListener("click", takeScreenshot);
 // Model manipulation logic
 let model = document.getElementById("model-container");
 let mode = "";
