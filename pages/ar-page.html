@@ -1,8 +1,12 @@
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+document.head.innerHTML += `
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">`;
     <title>AR - Manipulación de Modelo 3D</title>
     <script src="https://aframe.io/releases/1.0.4/aframe.min.js"></script>
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
@@ -35,7 +39,7 @@
 <body>
     <a-scene id="scene" embedded arjs="sourceType: webcam; facingMode: user;">
         <a-assets>
-            <a-asset-item id="model" src="https://zekturch.github.io/BKARexp/assets/asset.glb"></a-asset-item>
+            <a-asset-item id="model" src="https://zekturch.github.io/BKARexp/assets/asset2.glb"></a-asset-item>
         </a-assets>
         <a-entity id="model-container" gltf-model="#model" position="0 0 -2" scale="1 1 1"></a-entity>
         <a-camera position="0 1.6 0"></a-camera>
@@ -50,17 +54,34 @@
 
     <script>
 
-//COMPROBAR LOG PERMITIDO Y CÓDIGO DE FUNCIÓN
 window.onload = function () {
             if (sessionStorage.getItem("accesoPermitido") !== "true") {
                 alert("Acceso denegado. Primero ingresa un código válido.");
                 window.location.href = "index.html"; // Redirige a la página de registro
             }
         };
-        
+AFRAME.registerComponent('optimize-model', {
+    init: function () {
+        this.el.getObject3D('mesh').traverse(node => {
+            if (node.isMesh) {
+                node.material.needsUpdate = true;
+                node.castShadow = false;
+                node.receiveShadow = false;
+            }
+        });
+    }
+});
+  // Ajustes para mantener fondo transparente y evitar limpiar buffer
+    const scene = document.querySelector('a-scene');
+    scene.renderer.alpha = true; // Mantener fondo transparente
+    scene.renderer.autoClear = false; // Evitar limpiar buffer
 
-    initializeAR(); // Inicializar AR al cargar
-        
+    // Para dispositivos móviles, añadir meta tag
+    document.head.innerHTML += `
+    <meta name="viewport" content="width=device-width, user-scalable=no, 
+        initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">`;
+};
+
         let model = document.getElementById("model-container");
         let mode = "";
         let lastX, lastY;
@@ -72,13 +93,7 @@ window.onload = function () {
         let scaleBtn = document.getElementById("scale-btn");
 
         
-scene.renderer.alpha = true; // Mantener fondo transparente
-scene.renderer.autoClear = false; // Evitar limpiar buffer
 
-// Para dispositivos móviles, añadir meta tag
-document.head.innerHTML += `
-<meta name="viewport" content="width=device-width, user-scalable=no, 
-    initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">`;
         // ✅ Función para cambiar modo y actualizar estilos
         function setMode(newMode, button) {
             mode = newMode;
@@ -135,108 +150,27 @@ document.head.innerHTML += `
         document.addEventListener("mouseup", resetLastTouch);
         document.addEventListener("touchend", resetLastTouch);
 
-AFRAME.registerComponent('optimize-model', {
-    init: function () {
-        this.el.getObject3D('mesh').traverse(node => {
-            if (node.isMesh) {
-                node.material.needsUpdate = true;
-                node.castShadow = false;
-                node.receiveShadow = false;
-            }
-        });
-    }
-});
-
-    // Asignar eventos a los botones
-    moveBtn.addEventListener("click", () => setMode("move", moveBtn));
-    rotateBtn.addEventListener("click", () => setMode("rotate", rotateBtn));
-    scaleBtn.addEventListener("click", () => setMode("scale", scaleBtn));
-
-    // Evento para cambiar cámara
-    document.getElementById('switch-camera').addEventListener('click', () => {
-        currentCamera = currentCamera === 'user' ? 'environment' : 'user';
-        initializeAR();
-    });
-
-    // Evento para captura de pantalla
-    document.getElementById('capture-btn').addEventListener('click', async () => {
-        await captureAndShare();
-    });
-};
-
-// Variables globales
-let currentCamera = 'user'; // 'user' = frontal, 'environment' = trasera
-let activeStream = null;
-
-// Función para inicializar AR
-function initializeAR() {
-    if (activeStream) {
-        activeStream.getTracks().forEach(track => track.stop());
-    }
-
-    const constraints = {
-        video: {
-            facingMode: { exact: currentCamera },
-            width: { ideal: 1280 },
-            height: { ideal: 720 }
-        }
-    };
-
-    navigator.mediaDevices.getUserMedia(constraints)
-        .then(stream => {
-            activeStream = stream;
-            const videoElement = document.querySelector('video');
-            videoElement.srcObject = stream;
-            videoElement.play();
-            restartARScene(); // Reiniciar escena después de obtener el stream
-        })
-        .catch(error => console.error('Error al acceder a la cámara:', error));
-}
-
-// Función para reiniciar la escena AR
-function restartARScene() {
-    const oldScene = document.querySelector('a-scene');
-    if (oldScene) {
-        oldScene.parentNode.removeChild(oldScene);
-    }
-
-    const newScene = document.createElement('a-scene');
-    newScene.setAttribute('embedded', '');
-    newScene.setAttribute('arjs', `sourceType: webcam; facingMode: ${currentCamera}; debugUIEnabled: false;`);
-
-    newScene.innerHTML = `
-        <a-assets>
-            <a-asset-item id="model" src="https://zekturch.github.io/BKARexp/assets/asset.glb"></a-asset-item>
-        </a-assets>
-        <a-entity id="model-container" gltf-model="#model" position="0 0 -2" scale="1 1 1"></a-entity>
-        <a-camera position="0 1.6 0"></a-camera>
-    `;
-    
-    document.body.insertBefore(newScene, document.body.firstChild);
-}
-
-// Función para capturar y compartir imagen
-async function captureAndShare() {
+// ✅ Nuevo código para captura
+document.getElementById('capture-btn').addEventListener('click', async () => {
     const scene = document.querySelector('a-scene');
     const video = document.querySelector('video');
-
-    const modelCanvas = scene.components.screenshot.getCanvas('perspective');
     
+    // 1. Capturar componentes
+    const modelCanvas = scene.components.screenshot.getCanvas('perspective');
     const videoCanvas = document.createElement('canvas');
     videoCanvas.width = video.videoWidth;
     videoCanvas.height = video.videoHeight;
-    
     videoCanvas.getContext('2d').drawImage(video, 0, 0);
     
+    // 2. Combinar capas
     const finalCanvas = document.createElement('canvas');
     finalCanvas.width = videoCanvas.width;
     finalCanvas.height = videoCanvas.height;
-    
     const ctx = finalCanvas.getContext('2d');
-    
     ctx.drawImage(videoCanvas, 0, 0);
     ctx.drawImage(modelCanvas, 0, 0, finalCanvas.width, finalCanvas.height);
     
+    // 3. Preparar archivo para compartir
     finalCanvas.toBlob(async (blob) => {
         const file = new File([blob], 'ARcaptura.png', { type: 'image/png' });
         
@@ -248,6 +182,7 @@ async function captureAndShare() {
                     text: '¡Mira lo que hice con realidad aumentada!'
                 });
             } else {
+                // Fallback para navegadores sin soporte de share
                 const link = document.createElement('a');
                 link.download = 'ARcaptura.png';
                 link.href = URL.createObjectURL(file);
@@ -256,14 +191,9 @@ async function captureAndShare() {
         } catch (err) {
             console.log('Error al compartir:', err);
         }
-        
     }, 'image/png');
-}
+});
 
-// Meta viewport para móviles
-document.head.innerHTML += `
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<meta name="mobile-web-app-capable" content="yes">`;
-</script>
+    </script>
 </body>
 </html>
