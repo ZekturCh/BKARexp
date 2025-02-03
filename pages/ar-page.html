@@ -64,7 +64,7 @@ async function takeScreenshot() {
         let modelImage = await captureModel();
 
         // 3️⃣ Fusionar ambas imágenes en un solo canvas
-        let finalImage = mergeImages(cameraImage, modelImage);
+        let finalImage = await mergeImages(cameraImage, modelImage);
 
         // 4️⃣ Descargar y compartir la imagen
         downloadAndShare(finalImage);
