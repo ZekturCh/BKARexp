@@ -1,85 +1,157 @@
-// Importar Three.js
-import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.150.1/build/three.module.js';
-import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.150.1/examples/jsm/controls/OrbitControls.js';
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AR - Manipulación de Modelo 3D</title>
+    <script src="https://aframe.io/releases/1.0.4/aframe.min.js"></script>
+    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+    <script src="https://raw.githack.com/donmccurdy/aframe-extras/master/dist/aframe-extras.loaders.min.js"></script>
+    <style>
+        body { margin: 0; overflow: hidden; }
+        #buttons {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 10px;
+        }
+        button {
+            padding: 10px 15px;
+            font-size: 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            background: #007bff;
+            color: white;
+            transition: background 0.3s;
+        }
+        .active {
+            background: #28a745 !important; /* Verde */
+        }
+    </style>
+</head>
+<body>
+    <a-scene id="scene" embedded arjs="sourceType: webcam; facingMode: user;">
+        <a-assets>
+            <a-asset-item id="model" src="https://zekturch.github.io/BKARexp/assets/asset2.glb"></a-asset-item>
+        </a-assets>
+        <a-entity id="model-container" gltf-model="#model" position="0 0 -2" scale="1 1 1"></a-entity>
+        <a-camera position="0 1.6 0"></a-camera>
+    </a-scene>
 
-let scene, camera, renderer, model, video, texture, controls;
+    <div id="buttons">
+        <button id="move-btn">Mover</button>
+        <button id="rotate-btn">Rotar</button>
+        <button id="scale-btn">Escalar</button>
+        <button id="capture-btn">Capturar</button>
+    </div>
 
-// Configurar la escena
-scene = new THREE.Scene();
-camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-camera.position.set(0, 1.6, 3);
+    <script>
+window.onload = function () {
+            if (sessionStorage.getItem("accesoPermitido") !== "true") {
+                alert("Acceso denegado. Primero ingresa un código válido.");
+                window.location.href = "index.html"; // Redirige a la página de registro
+            }
+        };
+        let model = document.getElementById("model-container");
+        let mode = "";
+        let lastX, lastY;
+        let useFrontCamera = false; // Estado de la cámara (false = trasera, true = frontal)
 
-// Configurar el renderizador
-renderer = new THREE.WebGLRenderer({ alpha: true });
-renderer.setSize(window.innerWidth, window.innerHeight);
-document.body.appendChild(renderer.domElement);
+        // Guardar referencia a los botones
+        let moveBtn = document.getElementById("move-btn");
+        let rotateBtn = document.getElementById("rotate-btn");
+        let scaleBtn = document.getElementById("scale-btn");
 
-// Agregar luz
-const light = new THREE.AmbientLight(0xffffff, 1);
-scene.add(light);
+        
 
-// Agregar controles de órbita
-controls = new OrbitControls(camera, renderer.domElement);
-controls.enableDamping = true;
+        // ✅ Función para cambiar modo y actualizar estilos
+        function setMode(newMode, button) {
+            mode = newMode;
+            // 🔥 Quita la clase "active" de todos los botones
+            document.querySelectorAll("#buttons button").forEach(btn => btn.classList.remove("active"));
+            // ✅ Agrega la clase "active" al botón seleccionado
+            button.classList.add("active");
+        }
 
-// Capturar video de la cámara
-video = document.createElement('video');
-navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } }).then(stream => {
-    video.srcObject = stream;
-    video.play();
-    texture = new THREE.VideoTexture(video);
-    texture.minFilter = THREE.LinearFilter;
-    texture.magFilter = THREE.LinearFilter;
-    texture.format = THREE.RGBAFormat;
-    
-    // Agregar fondo con el video
-    const backgroundMaterial = new THREE.MeshBasicMaterial({ map: texture });
-    const backgroundGeometry = new THREE.PlaneGeometry(16, 9);
-    const backgroundMesh = new THREE.Mesh(backgroundGeometry, backgroundMaterial);
-    backgroundMesh.position.z = -5;
-    scene.add(backgroundMesh);
+        // Asignar eventos a los botones
+        moveBtn.addEventListener("click", () => setMode("move", moveBtn));
+        rotateBtn.addEventListener("click", () => setMode("rotate", rotateBtn));
+        scaleBtn.addEventListener("click", () => setMode("scale", scaleBtn));
 
-    animate();
-});
+        function handleMove(event) {
+            if (!mode) return;
 
-// Cargar modelo 3D
-tconst loader = new THREE.GLTFLoader();
-loader.load('https://zekturch.github.io/BKARexp/assets/asset.glb', (gltf) => {
-    model = gltf.scene;
-    model.position.set(0, 0, -2);
-    scene.add(model);
-});
+            let clientX = event.touches ? event.touches[0].clientX : event.clientX;
+            let clientY = event.touches ? event.touches[0].clientY : event.clientY;
 
-// Animación
-function animate() {
-    requestAnimationFrame(animate);
-    controls.update();
-    renderer.render(scene, camera);
-}
+            if (lastX === undefined || lastY === undefined) {
+                lastX = clientX;
+                lastY = clientY;
+                return;
+            }
 
-// Cambiar entre cámaras
-document.getElementById('switch-camera-btn').addEventListener('click', () => {
-    const currentMode = video.srcObject.getVideoTracks()[0].getSettings().facingMode;
-    const newMode = currentMode === 'user' ? 'environment' : 'user';
-    navigator.mediaDevices.getUserMedia({ video: { facingMode: newMode } }).then(stream => {
-        video.srcObject = stream;
-    });
-});
+            let deltaX = (clientX - lastX) * 0.5;
+            let deltaY = (clientY - lastY) * 0.5;
 
-// Capturar imagen combinada
+            let pos = model.getAttribute("position");
+            let rot = model.getAttribute("rotation");
+            let scale = model.getAttribute("scale");
+
+            if (mode === "move") {
+                model.setAttribute("position", `${pos.x + deltaX * 0.01} ${pos.y - deltaY * 0.01} ${pos.z}`);
+            } else if (mode === "rotate") {
+                model.setAttribute("rotation", `${rot.x - deltaY} ${rot.y + deltaX} ${rot.z}`);
+            } else if (mode === "scale") {
+                let newScale = Math.max(0.2, scale.x + deltaY * 0.01);
+                model.setAttribute("scale", `${newScale} ${newScale} ${newScale}`);
+            }
+
+            lastX = clientX;
+            lastY = clientY;
+        }
+
+        function resetLastTouch() {
+            lastX = undefined;
+            lastY = undefined;
+        }
+
+        document.addEventListener("mousemove", handleMove);
+        document.addEventListener("touchmove", handleMove);
+        document.addEventListener("mouseup", resetLastTouch);
+        document.addEventListener("touchend", resetLastTouch);
+
+        // ✅ Nuevo código para captura
 document.getElementById('capture-btn').addEventListener('click', () => {
-    const canvas = document.createElement('canvas');
-    canvas.width = renderer.domElement.width;
-    canvas.height = renderer.domElement.height;
-    const ctx = canvas.getContext('2d');
-
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-    renderer.render(scene, camera);
-    ctx.drawImage(renderer.domElement, 0, 0);
-
-    const imgData = canvas.toDataURL('image/png');
+    const video = document.querySelector('video'); // Elemento de video de AR.js
+    const scene = document.querySelector('a-scene');
+    
+    // 1. Capturar canvas del modelo 3D
+    const modelCanvas = scene.components.screenshot.getCanvas('perspective');
+    
+    // 2. Capturar frame de la cámara
+    const videoCanvas = document.createElement('canvas');
+    videoCanvas.width = video.videoWidth;
+    videoCanvas.height = video.videoHeight;
+    videoCanvas.getContext('2d').drawImage(video, 0, 0);
+    
+    // 3. Combinar ambos canvas
+    const finalCanvas = document.createElement('canvas');
+    finalCanvas.width = videoCanvas.width;
+    finalCanvas.height = videoCanvas.height;
+    const ctx = finalCanvas.getContext('2d');
+    
+    ctx.drawImage(videoCanvas, 0, 0); // Fondo cámara
+    ctx.drawImage(modelCanvas, 0, 0, finalCanvas.width, finalCanvas.height); // Modelo 3D
+    
+    // 4. Descargar imagen
     const link = document.createElement('a');
-    link.href = imgData;
-    link.download = 'AR_Capture.png';
+    link.download = 'ar-capture.png';
+    link.href = finalCanvas.toDataURL();
     link.click();
 });
+    </script>
+</body>
+</html>
