@@ -3,235 +3,64 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AR - Manipulación de Modelo 3D</title>
-    <script src="https://aframe.io/releases/1.0.4/aframe.min.js"></script>
-    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
-    <script src="https://raw.githack.com/donmccurdy/aframe-extras/master/dist/aframe-extras.loaders.min.js"></script>
+    <title>AR con Cámara y Modelo 3D</title>
+    <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
+    <script src="https://threejs.org/build/three.min.js"></script>
     <style>
-        body { margin: 0; overflow: hidden; }
-        #buttons {
-            position: fixed;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            display: flex;
-            gap: 10px;
-        }
-        button {
-            padding: 10px 15px;
-            font-size: 16px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            background: #007bff;
-            color: white;
-            transition: background 0.3s;
-        }
-        .active {
-            background: #28a745 !important;
-        }
+        body { margin: 0; overflow: hidden; text-align: center; }
+        video { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; object-fit: cover; }
+        #controls { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; }
+        button { padding: 10px; font-size: 16px; cursor: pointer; }
+        canvas { position: fixed; top: 0; left: 0; pointer-events: none; }
     </style>
 </head>
 <body>
-  <a-scene 
-        id="scene" 
-        embedded 
-        arjs="sourceType: webcam; facingMode: user;"
-        renderer="preserveDrawingBuffer: true; alpha: true">
-        
+    <video id="camera" autoplay playsinline></video>
+    <a-scene embedded>
         <a-assets>
             <a-asset-item id="model" src="https://zekturch.github.io/BKARexp/assets/asset.glb"></a-asset-item>
         </a-assets>
-        
-        <a-entity id="model-container" gltf-model="#model" position="0 0 -2"></a-entity>
+        <a-entity id="model-container" gltf-model="#model" position="0 0 -2" rotation="0 180 0"></a-entity>
         <a-camera position="0 1.6 0"></a-camera>
     </a-scene>
-
-    <div id="buttons">
-        <button id="move-btn">Mover</button>
-        <button id="rotate-btn">Rotar</button>
-        <button id="scale-btn">Escalar</button>
-        <button id="capture-btn">📷 Capturar</button>
+    <canvas id="captureCanvas"></canvas>
+    <div id="controls">
+        <button onclick="switchCamera()">Cambiar Cámara</button>
+        <button onclick="takeScreenshot()">📷 Capturar</button>
     </div>
 
-   <script>
-async function takeScreenshot() {
-    try {
-        // 1️⃣ Capturar la imagen de la cámara
-        let cameraImage = await captureCamera();
+    <script>
+        let currentFacingMode = 'environment';
+        let video = document.getElementById("camera");
 
-        // 2️⃣ Renderizar el modelo 3D como una imagen sin fondo
-        let modelImage = await captureModel();
-
-        // 3️⃣ Fusionar ambas imágenes en un solo canvas
-        let finalImage = await mergeImages(cameraImage, modelImage);
-
-        // 4️⃣ Descargar y compartir la imagen
-        downloadAndShare(finalImage);
-
-    } catch (error) {
-        console.error("Error al tomar la captura:", error);
-    }
-}
-
-// Función para capturar lo que ve la cámara
-async function captureCamera() {
-    return new Promise(async (resolve, reject) => {
-        try {
-            let video = document.createElement("video");
-            let stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        async function startCamera() {
+            let stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: currentFacingMode } });
             video.srcObject = stream;
-            await video.play();
+        }
 
-            let canvas = document.createElement("canvas");
+        function switchCamera() {
+            currentFacingMode = currentFacingMode === 'environment' ? 'user' : 'environment';
+            startCamera();
+        }
+
+        function takeScreenshot() {
+            let canvas = document.getElementById("captureCanvas");
+            let ctx = canvas.getContext("2d");
             canvas.width = video.videoWidth;
             canvas.height = video.videoHeight;
-            let ctx = canvas.getContext("2d");
-
             ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-            let image = canvas.toDataURL("image/png");
 
-            stream.getTracks().forEach(track => track.stop()); // Detener la cámara
-            resolve(image);
-        } catch (error) {
-            reject(error);
+            let rendererCanvas = document.querySelector("a-scene").renderer.domElement;
+            ctx.drawImage(rendererCanvas, 0, 0, canvas.width, canvas.height);
+
+            let img = document.createElement("a");
+            img.href = canvas.toDataURL("image/png");
+            img.download = "screenshot.png";
+            img.click();
         }
-    });
-}
 
-// Función para capturar el modelo 3D sin fondo
-async function captureModel() {
-    return new Promise((resolve, reject) => {
-        let scene = document.querySelector("a-scene");
-        let rendererCanvas = scene.renderer.domElement;
-
-        // Crear un canvas temporal sin fondo
-        let tempCanvas = document.createElement("canvas");
-        tempCanvas.width = rendererCanvas.width;
-        tempCanvas.height = rendererCanvas.height;
-        let ctx = tempCanvas.getContext("2d");
-
-        let img = new Image();
-        img.onload = () => {
-            ctx.clearRect(0, 0, tempCanvas.width, tempCanvas.height); // Asegurar transparencia
-            ctx.drawImage(img, 0, 0);
-            resolve(tempCanvas.toDataURL("image/png")); // Retornar imagen con transparencia
-        };
-        img.onerror = reject;
-        img.src = rendererCanvas.toDataURL("image/png");
-    });
-}
-
-// Función para unir ambas imágenes en una sola
-function mergeImages(background, overlay) {
-    let canvas = document.createElement("canvas");
-    let ctx = canvas.getContext("2d");
-
-    let img1 = new Image();
-    let img2 = new Image();
-
-    return new Promise((resolve, reject) => {
-        img1.onload = () => {
-            canvas.width = img1.width;
-            canvas.height = img1.height;
-            ctx.drawImage(img1, 0, 0); // Dibujar la cámara
-
-            img2.onload = () => {
-                ctx.globalAlpha = 1.0; // Asegurar que el modelo se vea bien
-                ctx.drawImage(img2, 0, 0, img1.width, img1.height); // Dibujar el modelo encima
-                resolve(canvas.toDataURL("image/png"));
-            };
-            img2.onerror = reject;
-            img2.src = overlay;
-        };
-        img1.onerror = reject;
-        img1.src = background;
-    });
-}
-// Descargar y compartir la imagen final
-function downloadAndShare(imgData) {
-    let link = document.createElement("a");
-    link.href = imgData;
-    link.download = "screenshot.png";
-    link.click();
-
-    if (navigator.share) {
-        navigator.share({
-            title: "AR Screenshot",
-            text: "Mira mi captura en realidad aumentada",
-            files: [new File([dataURItoBlob(imgData)], "screenshot.png", { type: "image/png" })]
-        }).catch(console.error);
-    } else {
-        alert("Captura guardada. Comparte manualmente.");
-    }
-}
-
-// Convertir Data URL a Blob
-function dataURItoBlob(dataURI) {
-    let byteString = atob(dataURI.split(",")[1]);
-    let mimeString = dataURI.split(",")[0].split(":")[1].split(";")[0];
-    let ab = new ArrayBuffer(byteString.length);
-    let ia = new Uint8Array(ab);
-    for (let i = 0; i < byteString.length; i++) {
-        ia[i] = byteString.charCodeAt(i);
-    }
-    return new Blob([ab], { type: mimeString });
-}
-
-// Asignar la función al botón
-document.getElementById("capture-btn").addEventListener("click", takeScreenshot);
-// Model manipulation logic
-let model = document.getElementById("model-container");
-let mode = "";
-let lastX, lastY;
-
-function setMode(newMode, button) {
-    mode = newMode;
-    document.querySelectorAll("#buttons button").forEach(btn => btn.classList.remove("active"));
-    button.classList.add("active");
-}
-
-document.getElementById("move-btn").addEventListener("click", (e) => setMode("move", e.target));
-document.getElementById("rotate-btn").addEventListener("click", (e) => setMode("rotate", e.target));
-document.getElementById("scale-btn").addEventListener("click", (e) => setMode("scale", e.target));
-
-function handleMove(event) {
-    if (!mode) return;
-    let clientX = event.touches ? event.touches[0].clientX : event.clientX;
-    let clientY = event.touches ? event.touches[0].clientY : event.clientY;
-    if (lastX === undefined || lastY === undefined) {
-        lastX = clientX;
-        lastY = clientY;
-        return;
-    }
-    let deltaX = (clientX - lastX) * 0.5;
-    let deltaY = (clientY - lastY) * 0.5;
-    let pos = model.getAttribute("position");
-    let rot = model.getAttribute("rotation");
-    let scale = model.getAttribute("scale");
-
-    if (mode === "move") {
-        model.setAttribute("position", `${pos.x + deltaX * 0.01} ${pos.y - deltaY * 0.01} ${pos.z}`);
-    } else if (mode === "rotate") {
-        model.setAttribute("rotation", `${rot.x - deltaY} ${rot.y + deltaX} ${rot.z}`);
-    } else if (mode === "scale") {
-        let newScale = Math.max(0.2, scale.x + deltaY * 0.01);
-        model.setAttribute("scale", `${newScale} ${newScale} ${newScale}`);
-    }
-
-    lastX = clientX;
-    lastY = clientY;
-}
-
-function resetLastTouch() {
-    lastX = undefined;
-    lastY = undefined;
-}
-
-document.addEventListener("mousemove", handleMove);
-document.addEventListener("touchmove", handleMove);
-document.addEventListener("mouseup", resetLastTouch);
-document.addEventListener("touchend", resetLastTouch);
-</script>
+        startCamera();
+    </script>
 </body>
 </html>
+
