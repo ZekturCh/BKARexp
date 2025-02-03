@@ -50,6 +50,19 @@
     </div>
 
     <script>
+        // Añadir al inicio del script
+AFRAME.registerComponent('optimize-model', {
+    init: function () {
+        this.el.getObject3D('mesh').traverse(node => {
+            if (node.isMesh) {
+                node.material.needsUpdate = true;
+                node.castShadow = false;
+                node.receiveShadow = false;
+            }
+        });
+    }
+});
+
 window.onload = function () {
             if (sessionStorage.getItem("accesoPermitido") !== "true") {
                 alert("Acceso denegado. Primero ingresa un código válido.");
