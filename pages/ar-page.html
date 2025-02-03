@@ -3,63 +3,67 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AR con Cámara y Modelo 3D</title>
-    <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
-    <script src="https://threejs.org/build/three.min.js"></script>
+    <title>AR - Manipulación de Modelo 3D</title>
+    <script src="https://aframe.io/releases/1.0.4/aframe.min.js"></script>
+    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+    <script src="https://raw.githack.com/donmccurdy/aframe-extras/master/dist/aframe-extras.loaders.min.js"></script>
     <style>
-        body { margin: 0; overflow: hidden; text-align: center; }
-        video { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; object-fit: cover; }
-        #controls { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; }
-        button { padding: 10px; font-size: 16px; cursor: pointer; }
-        canvas { position: fixed; top: 0; left: 0; pointer-events: none; }
+        body { margin: 0; overflow: hidden; }
+        #buttons {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 10px;
+        }
+        button {
+            padding: 10px 15px;
+            font-size: 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            background: #007bff;
+            color: white;
+            transition: background 0.3s;
+        }
+        .active {
+            background: #28a745 !important;
+        }
     </style>
 </head>
 <body>
-    <video id="camera" autoplay playsinline></video>
-    <a-scene embedded>
+    <a-scene id="scene" embedded arjs="sourceType: webcam;" renderer="preserveDrawingBuffer: true; alpha: true">
         <a-assets>
             <a-asset-item id="model" src="https://zekturch.github.io/BKARexp/assets/asset.glb"></a-asset-item>
         </a-assets>
-        <a-entity id="model-container" gltf-model="#model" position="0 0 -2" rotation="0 180 0"></a-entity>
-        <a-camera position="0 1.6 0"></a-camera>
+        
+        <a-camera id="camera" position="0 1.6 0"></a-camera>
+        <a-entity id="model-container" gltf-model="#model" position="0 0 -2"></a-entity>
     </a-scene>
-    <canvas id="captureCanvas"></canvas>
-    <div id="controls">
-        <button onclick="switchCamera()">Cambiar Cámara</button>
-        <button onclick="takeScreenshot()">📷 Capturar</button>
+
+    <div id="buttons">
+        <button id="switch-camera">🔄 Cambiar Cámara</button>
+        <button id="capture-btn">📷 Capturar</button>
     </div>
 
     <script>
-        let currentFacingMode = 'environment';
-        let video = document.getElementById("camera");
+        let usingFrontCamera = false;
+        document.getElementById("switch-camera").addEventListener("click", () => {
+            usingFrontCamera = !usingFrontCamera;
+            document.querySelector("a-scene").setAttribute("arjs", `sourceType: webcam; facingMode: ${usingFrontCamera ? 'user' : 'environment'}`);
+        });
 
-        async function startCamera() {
-            let stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: currentFacingMode } });
-            video.srcObject = stream;
-        }
-
-        function switchCamera() {
-            currentFacingMode = currentFacingMode === 'environment' ? 'user' : 'environment';
-            startCamera();
-        }
-
-        function takeScreenshot() {
-            let canvas = document.getElementById("captureCanvas");
-            let ctx = canvas.getContext("2d");
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-            let rendererCanvas = document.querySelector("a-scene").renderer.domElement;
-            ctx.drawImage(rendererCanvas, 0, 0, canvas.width, canvas.height);
-
-            let img = document.createElement("a");
-            img.href = canvas.toDataURL("image/png");
-            img.download = "screenshot.png";
-            img.click();
-        }
-
-        startCamera();
+        document.getElementById("capture-btn").addEventListener("click", () => {
+            let scene = document.querySelector("a-scene");
+            let rendererCanvas = scene.renderer.domElement;
+            let image = rendererCanvas.toDataURL("image/png");
+            
+            let link = document.createElement("a");
+            link.href = image;
+            link.download = "captura_ar.png";
+            link.click();
+        });
     </script>
 </body>
 </html>
