@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AR con Captura y Compartir</title>
     <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
+    <script src="https://rawgit.com/jeromeetienne/AR.js/1.7.2/aframe/build/aframe-ar.min.js"></script>
     <style>
         body { margin: 0; overflow: hidden; }
         #buttons {
@@ -31,12 +32,16 @@
     </style>
 </head>
 <body>
-    <a-scene id="scene" embedded renderer="alpha: true; preserveDrawingBuffer: true;">
+    <a-scene id="scene" embedded arjs vr-mode-ui="enabled: false" renderer="alpha: true; preserveDrawingBuffer: true;">
         <a-assets>
             <a-asset-item id="model" src="https://zekturch.github.io/BKARexp/assets/asset.glb"></a-asset-item>
         </a-assets>
-        <a-entity id="model-container" gltf-model="#model" position="0 0 -2"></a-entity>
-        <a-camera position="0 1.6 0"></a-camera>
+
+        <a-marker-camera preset='custom'></a-marker-camera>
+
+        <a-entity id="model-container" gltf-model="#model" position="0 0 -2" scale="1 1 1"></a-entity>
+        
+        <a-camera position="0 1.6 0" wasd-controls-enabled="true"></a-camera>
     </a-scene>
 
     <div id="buttons">
@@ -46,133 +51,54 @@
         <button id="capture-btn">📷 Capturar</button>
     </div>
 
-
     <script>
-    document.getElementById("capture-btn").addEventListener("click", takeScreenshot);
+        document.getElementById("capture-btn").addEventListener("click", takeScreenshot);
 
-        async function takeScreenshot() {
+        window.onload = async function () {
             try {
-                let cameraImage = await captureCamera();
-                let modelImage = await captureModel();
-                let finalImage = await mergeImages(cameraImage, modelImage);
-                downloadAndShare(finalImage);
+                await navigator.mediaDevices.getUserMedia({ video: true });
+                console.log("Cámara activada correctamente.");
             } catch (error) {
-                console.error("Error al tomar la captura:", error);
-            }
-        }
-
-        async function captureCamera() {
-            return new Promise(async (resolve, reject) => {
-                try {
-                    let video = document.createElement("video");
-                    let stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
-                    video.srcObject = stream;
-                    await video.play();
-                    let canvas = document.createElement("canvas");
-                    canvas.width = video.videoWidth;
-                    canvas.height = video.videoHeight;
-                    let ctx = canvas.getContext("2d");
-                    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-                    let image = canvas.toDataURL("image/png");
-                    stream.getTracks().forEach(track => track.stop());
-                    resolve(image);
-                } catch (error) {
-                    reject(error);
-                }
-            });
-        }
-
-        async function captureModel() {
-            return new Promise((resolve) => {
-                let scene = document.querySelector("a-scene");
-                let rendererCanvas = scene.renderer.domElement;
-                let tempCanvas = document.createElement("canvas");
-                tempCanvas.width = rendererCanvas.width;
-                tempCanvas.height = rendererCanvas.height;
-                let ctx = tempCanvas.getContext("2d");
-                let img = new Image();
-                img.onload = () => {
-                    ctx.clearRect(0, 0, tempCanvas.width, tempCanvas.height);
-                    ctx.drawImage(img, 0, 0);
-                    resolve(tempCanvas.toDataURL("image/png"));
-                };
-                img.src = rendererCanvas.toDataURL("image/png");
-            });
-        }
-
-        async function mergeImages(cameraImage, modelImage) {
-            return new Promise((resolve) => {
-                let finalCanvas = document.createElement("canvas");
-                let ctx = finalCanvas.getContext("2d");
-                let cameraImg = new Image();
-                let modelImg = new Image();
-                cameraImg.onload = () => {
-                    finalCanvas.width = cameraImg.width;
-                    finalCanvas.height = cameraImg.height;
-                    ctx.drawImage(cameraImg, 0, 0);
-                    modelImg.onload = () => {
-                        ctx.drawImage(modelImg, 0, 0, cameraImg.width, cameraImg.height);
-                        resolve(finalCanvas.toDataURL("image/png"));
-                    };
-                    modelImg.src = modelImage;
-                };
-                cameraImg.src = cameraImage;
-            });
-        }
-
-        function downloadAndShare(imageData) {
-            let link = document.createElement("a");
-            link.href = imageData;
-            link.download = "AR_capture.png";
-            link.click();
-
-            if (navigator.share) {
-                fetch(imageData)
-                    .then(res => res.blob())
-                    .then(blob => {
-                        let file = new File([blob], "AR_capture.png", { type: "image/png" });
-                        navigator.share({
-                            title: "Foto AR",
-                            text: "Mira esta foto de Realidad Aumentada!",
-                            files: [file]
-                        }).catch(console.error);
-                    });
-            } else {
-                alert("Compartir no es compatible en este dispositivo.");
-            }
-        }
-
-window.onload = function () {
-            if (sessionStorage.getItem("accesoPermitido") !== "true") {
-                alert("Acceso denegado. Primero ingresa un código válido.");
-                window.location.href = "index.html"; // Redirige a la página de registro
+                console.error("Error accediendo a la cámara:", error);
             }
         };
+
+        async function takeScreenshot() {
+            let scene = document.querySelector("a-scene");
+            let rendererCanvas = scene.renderer.domElement;
+
+            let tempCanvas = document.createElement("canvas");
+            tempCanvas.width = rendererCanvas.width;
+            tempCanvas.height = rendererCanvas.height;
+            let ctx = tempCanvas.getContext("2d");
+
+            let img = new Image();
+            img.onload = () => {
+                ctx.clearRect(0, 0, tempCanvas.width, tempCanvas.height);
+                ctx.drawImage(img, 0, 0);
+                let imageData = tempCanvas.toDataURL("image/png");
+
+                let link = document.createElement("a");
+                link.href = imageData;
+                link.download = "AR_capture.png";
+                link.click();
+            };
+            img.src = rendererCanvas.toDataURL("image/png");
+        }
+
         let model = document.getElementById("model-container");
         let mode = "";
         let lastX, lastY;
-        let useFrontCamera = false; // Estado de la cámara (false = trasera, true = frontal)
 
-        // Guardar referencia a los botones
-        let moveBtn = document.getElementById("move-btn");
-        let rotateBtn = document.getElementById("rotate-btn");
-        let scaleBtn = document.getElementById("scale-btn");
-
-        
-
-        // ✅ Función para cambiar modo y actualizar estilos
         function setMode(newMode, button) {
             mode = newMode;
-            // 🔥 Quita la clase "active" de todos los botones
             document.querySelectorAll("#buttons button").forEach(btn => btn.classList.remove("active"));
-            // ✅ Agrega la clase "active" al botón seleccionado
             button.classList.add("active");
         }
 
-        // Asignar eventos a los botones
-        moveBtn.addEventListener("click", () => setMode("move", moveBtn));
-        rotateBtn.addEventListener("click", () => setMode("rotate", rotateBtn));
-        scaleBtn.addEventListener("click", () => setMode("scale", scaleBtn));
+        document.getElementById("move-btn").addEventListener("click", (e) => setMode("move", e.target));
+        document.getElementById("rotate-btn").addEventListener("click", (e) => setMode("rotate", e.target));
+        document.getElementById("scale-btn").addEventListener("click", (e) => setMode("scale", e.target));
 
         function handleMove(event) {
             if (!mode) return;
