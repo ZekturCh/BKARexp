@@ -1,12 +1,9 @@
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" document.head.innerHTML += `>
-
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<meta name="mobile-web-app-capable" content="yes">`;
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="mobile-web-app-capable" content="yes">
     <title>AR - Manipulación de Modelo 3D</title>
     <script src="https://aframe.io/releases/1.0.4/aframe.min.js"></script>
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
@@ -50,150 +47,133 @@
         <button id="rotate-btn">Rotar</button>
         <button id="scale-btn">Escalar</button>
         <button id="capture-btn">Capturar</button>
+        <button id="switch-camera">Cambiar Cámara</button> <!-- Botón para cambiar cámara -->
     </div>
 
     <script>
-
-window.onload = function () {
+        window.onload = function () {
             if (sessionStorage.getItem("accesoPermitido") !== "true") {
                 alert("Acceso denegado. Primero ingresa un código válido.");
                 window.location.href = "index.html"; // Redirige a la página de registro
             }
-        };
-AFRAME.registerComponent('optimize-model', {
-    init: function () {
-        this.el.getObject3D('mesh').traverse(node => {
-            if (node.isMesh) {
-                node.material.needsUpdate = true;
-                node.castShadow = false;
-                node.receiveShadow = false;
+
+            // Inicialización
+            let model = document.getElementById("model-container");
+            let mode = "";
+            let lastX, lastY;
+
+            // Guardar referencia a los botones
+            let moveBtn = document.getElementById("move-btn");
+            let rotateBtn = document.getElementById("rotate-btn");
+            let scaleBtn = document.getElementById("scale-btn");
+            let switchCameraBtn = document.getElementById("switch-camera");
+
+            // Inicializar cámara
+            let currentCamera = 'user'; // 'user' = frontal, 'environment' = trasera
+
+            // Función para cambiar modo y actualizar estilos
+            function setMode(newMode, button) {
+                mode = newMode;
+                document.querySelectorAll("#buttons button").forEach(btn => btn.classList.remove("active"));
+                button.classList.add("active");
             }
-        });
-    }
-});
-  // Ajustes para mantener fondo transparente y evitar limpiar buffer
-    const scene = document.querySelector('a-scene');
-    scene.renderer.alpha = true; // Mantener fondo transparente
-    scene.renderer.autoClear = false; // Evitar limpiar buffer
 
-    // Para dispositivos móviles, añadir meta tag
-    document.head.innerHTML += `
-    <meta name="viewport" content="width=device-width, user-scalable=no, 
-        initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">`;
-};
+            // Asignar eventos a los botones
+            moveBtn.addEventListener("click", () => setMode("move", moveBtn));
+            rotateBtn.addEventListener("click", () => setMode("rotate", rotateBtn));
+            scaleBtn.addEventListener("click", () => setMode("scale", scaleBtn));
 
-        let model = document.getElementById("model-container");
-        let mode = "";
-        let lastX, lastY;
-        let useFrontCamera = false; // Estado de la cámara (false = trasera, true = frontal)
+            function handleMove(event) {
+                if (!mode) return;
 
-        // Guardar referencia a los botones
-        let moveBtn = document.getElementById("move-btn");
-        let rotateBtn = document.getElementById("rotate-btn");
-        let scaleBtn = document.getElementById("scale-btn");
+                let clientX = event.touches ? event.touches[0].clientX : event.clientX;
+                let clientY = event.touches ? event.touches[0].clientY : event.clientY;
 
-        
+                if (lastX === undefined || lastY === undefined) {
+                    lastX = clientX;
+                    lastY = clientY;
+                    return;
+                }
 
-        // ✅ Función para cambiar modo y actualizar estilos
-        function setMode(newMode, button) {
-            mode = newMode;
-            // 🔥 Quita la clase "active" de todos los botones
-            document.querySelectorAll("#buttons button").forEach(btn => btn.classList.remove("active"));
-            // ✅ Agrega la clase "active" al botón seleccionado
-            button.classList.add("active");
-        }
+                let deltaX = (clientX - lastX) * 0.5;
+                let deltaY = (clientY - lastY) * 0.5;
 
-        // Asignar eventos a los botones
-        moveBtn.addEventListener("click", () => setMode("move", moveBtn));
-        rotateBtn.addEventListener("click", () => setMode("rotate", rotateBtn));
-        scaleBtn.addEventListener("click", () => setMode("scale", scaleBtn));
+                let pos = model.getAttribute("position");
+                let rot = model.getAttribute("rotation");
+                let scale = model.getAttribute("scale");
 
-        function handleMove(event) {
-            if (!mode) return;
+                if (mode === "move") {
+                    model.setAttribute("position", `${pos.x + deltaX * 0.01} ${pos.y - deltaY * 0.01} ${pos.z}`);
+                } else if (mode === "rotate") {
+                    model.setAttribute("rotation", `${rot.x - deltaY} ${rot.y + deltaX} ${rot.z}`);
+                } else if (mode === "scale") {
+                    let newScale = Math.max(0.2, scale.x + deltaY * 0.01);
+                    model.setAttribute("scale", `${newScale} ${newScale} ${newScale}`);
+                }
 
-            let clientX = event.touches ? event.touches[0].clientX : event.clientX;
-            let clientY = event.touches ? event.touches[0].clientY : event.clientY;
-
-            if (lastX === undefined || lastY === undefined) {
                 lastX = clientX;
                 lastY = clientY;
-                return;
             }
 
-            let deltaX = (clientX - lastX) * 0.5;
-            let deltaY = (clientY - lastY) * 0.5;
-
-            let pos = model.getAttribute("position");
-            let rot = model.getAttribute("rotation");
-            let scale = model.getAttribute("scale");
-
-            if (mode === "move") {
-                model.setAttribute("position", `${pos.x + deltaX * 0.01} ${pos.y - deltaY * 0.01} ${pos.z}`);
-            } else if (mode === "rotate") {
-                model.setAttribute("rotation", `${rot.x - deltaY} ${rot.y + deltaX} ${rot.z}`);
-            } else if (mode === "scale") {
-                let newScale = Math.max(0.2, scale.x + deltaY * 0.01);
-                model.setAttribute("scale", `${newScale} ${newScale} ${newScale}`);
+            function resetLastTouch() {
+                lastX = undefined;
+                lastY = undefined;
             }
 
-            lastX = clientX;
-            lastY = clientY;
-        }
+            document.addEventListener("mousemove", handleMove);
+            document.addEventListener("touchmove", handleMove);
+            document.addEventListener("mouseup", resetLastTouch);
+            document.addEventListener("touchend", resetLastTouch);
 
-        function resetLastTouch() {
-            lastX = undefined;
-            lastY = undefined;
-        }
+            // Función para cambiar cámara
+            switchCameraBtn.addEventListener('click', () => {
+                currentCamera = currentCamera === 'user' ? 'environment' : 'user';
+                const scene = document.querySelector('a-scene');
+                scene.setAttribute('arjs', `sourceType: webcam; facingMode: ${currentCamera};`);
+                console.log(`Cámara cambiada a: ${currentCamera}`);
+            });
 
-        document.addEventListener("mousemove", handleMove);
-        document.addEventListener("touchmove", handleMove);
-        document.addEventListener("mouseup", resetLastTouch);
-        document.addEventListener("touchend", resetLastTouch);
+           // Captura de pantalla
+           document.getElementById('capture-btn').addEventListener('click', async () => {
+               const scene = document.querySelector('a-scene');
+               const video = document.querySelector('video');
 
-// ✅ Nuevo código para captura
-document.getElementById('capture-btn').addEventListener('click', async () => {
-    const scene = document.querySelector('a-scene');
-    const video = document.querySelector('video');
-    
-    // 1. Capturar componentes
-    const modelCanvas = scene.components.screenshot.getCanvas('perspective');
-    const videoCanvas = document.createElement('canvas');
-    videoCanvas.width = video.videoWidth;
-    videoCanvas.height = video.videoHeight;
-    videoCanvas.getContext('2d').drawImage(video, 0, 0);
-    
-    // 2. Combinar capas
-    const finalCanvas = document.createElement('canvas');
-    finalCanvas.width = videoCanvas.width;
-    finalCanvas.height = videoCanvas.height;
-    const ctx = finalCanvas.getContext('2d');
-    ctx.drawImage(videoCanvas, 0, 0);
-    ctx.drawImage(modelCanvas, 0, 0, finalCanvas.width, finalCanvas.height);
-    
-    // 3. Preparar archivo para compartir
-    finalCanvas.toBlob(async (blob) => {
-        const file = new File([blob], 'ARcaptura.png', { type: 'image/png' });
-        
-        try {
-            if (navigator.share) {
-                await navigator.share({
-                    files: [file],
-                    title: 'Mi creación AR',
-                    text: '¡Mira lo que hice con realidad aumentada!'
-                });
-            } else {
-                // Fallback para navegadores sin soporte de share
-                const link = document.createElement('a');
-                link.download = 'ARcaptura.png';
-                link.href = URL.createObjectURL(file);
-                link.click();
-            }
-        } catch (err) {
-            console.log('Error al compartir:', err);
-        }
-    }, 'image/png');
-});
+               const modelCanvas = scene.components.screenshot.getCanvas('perspective');
+               const videoCanvas = document.createElement('canvas');
+               videoCanvas.width = video.videoWidth;
+               videoCanvas.height = video.videoHeight;
+               videoCanvas.getContext('2d').drawImage(video, 0, 0);
 
+               const finalCanvas = document.createElement('canvas');
+               finalCanvas.width = videoCanvas.width;
+               finalCanvas.height = videoCanvas.height;
+
+               const ctx = finalCanvas.getContext('2d');
+               ctx.drawImage(videoCanvas, 0, 0);
+               ctx.drawImage(modelCanvas, 0, 0, finalCanvas.width, finalCanvas.height);
+
+               finalCanvas.toBlob(async (blob) => {
+                   const file = new File([blob], 'ARcaptura.png', { type: 'image/png' });
+                   try {
+                       if (navigator.share) {
+                           await navigator.share({
+                               files: [file],
+                               title: 'Mi creación AR',
+                               text: '¡Mira lo que hice con realidad aumentada!'
+                           });
+                       } else {
+                           const link = document.createElement('a');
+                           link.download = 'ARcaptura.png';
+                           link.href = URL.createObjectURL(file);
+                           link.click();
+                       }
+                   } catch (err) {
+                       console.log('Error al compartir:', err);
+                   }
+               }, 'image/png');
+           });
+        };
     </script>
 </body>
 </html>
+
