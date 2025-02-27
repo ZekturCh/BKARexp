@@ -6,44 +6,28 @@
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
 </head>
 <body>
-    <a-scene mindar-image="imageTargetSrc: https://raw.githubusercontent.com/ZekturCh/BKARexp/gh-pages/targets.mind;" 
-             color-space="sRGB" 
-             renderer="colorManagement: true, physicallyCorrectLights" 
-             vr-mode-ui="enabled: false" 
-             device-orientation-permission-ui="enabled: false">
+    <a-scene 
+        mindar-image="imageTargetSrc: https://raw.githubusercontent.com/ZekturCh/BKARexp/gh-pages/targets.mind;" 
+        color-space="sRGB" 
+        renderer="colorManagement: true, physicallyCorrectLights" 
+        vr-mode-ui="enabled: false" 
+        device-orientation-permission-ui="enabled: false">
+      
+      <!-- Carga de video -->
+      <a-assets>
+        <video id="videoTransparente" autoplay loop playsinline muted>
+          <source src="https://raw.githubusercontent.com/ZekturCh/BKARexp/gh-pages/assets/video-transparente.webm" type="video/webm">
+        </video>
+      </a-assets>
 
-        <!-- Carga de activos -->
-        <a-assets>
-            <a-asset-item id="nuevoModelo" src="https://raw.githubusercontent.com/ZekturCh/BKARexp/gh-pages/assets/asset3.glb"></a-asset-item>
-        </a-assets>
+      <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
-        <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
-
-        <!-- Objeto que aparecerá al detectar la imagen -->
-        <a-entity mindar-image-target="targetIndex: 0" id="target">
-            <a-gltf-model id="modelo3D" src="#nuevoModelo" position="0 0 0" scale="1 1 1" animation-mixer></a-gltf-model>
-        </a-entity>
+      <!-- Objeto que aparecerá al detectar la imagen -->
+      <a-entity mindar-image-target="targetIndex: 0">
+        <!-- Plano con video -->
+        <a-video src="#videoTransparente" width="1.5" height="1" position="0 0 0" scale="1 1 1"></a-video>
+      </a-entity>
+      
     </a-scene>
-
-    <script>
-        AFRAME.registerComponent('auto-scale', {
-            init: function () {
-                let modelo = this.el;
-                let target = document.querySelector("#target");
-
-                target.addEventListener("targetFound", () => {
-                    // Obtener el tamaño del target (MindAR usa width=1 por defecto)
-                    let targetSize = 1; // Ajusta según el tamaño real de tu imagen
-                    let scaleFactor = targetSize * 2; // Ajusta el multiplicador según pruebas
-
-                    // Aplicar la escala al modelo
-                    modelo.setAttribute("scale", `${scaleFactor} ${scaleFactor} ${scaleFactor}`);
-                });
-            }
-        });
-
-        // Aplicar el componente al modelo 3D
-        document.querySelector("#modelo3D").setAttribute("auto-scale", "");
-    </script>
 </body>
 </html>
