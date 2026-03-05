@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jesús Chavez | Portafolio</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&display=swap" rel="stylesheet">
+
+<style>
+
+*{
+  margin:0;
+  padding:0;
+  box-sizing:border-box;
+}
+
+body{
+  font-family:'Montserrat', sans-serif;
+  background:#0f0f0f;
+  color:white;
+  line-height:1.6;
+}
+
+/* HEADER */
+header{
+  height:100vh;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  align-items:center;
+  text-align:center;
+  background:linear-gradient(135deg,#000,#1a1a1a);
+}
+
+header h1{
+  font-size:4rem;
+  font-weight:900;
+  letter-spacing:3px;
+}
+
+header p{
+  margin-top:15px;
+  font-size:1.2rem;
+  color:#aaa;
+}
+
+/* SECCIONES */
+section{
+  padding:80px 10%;
+}
+
+h2{
+  font-size:2rem;
+  margin-bottom:40px;
+  border-left:4px solid #00ffc3;
+  padding-left:15px;
+}
+
+/* BOTONES WEBS */
+.web-links{
+  display:flex;
+  flex-wrap:wrap;
+  gap:20px;
+}
+
+.web-links a{
+  padding:15px 25px;
+  background:#00ffc3;
+  color:black;
+  text-decoration:none;
+  font-weight:700;
+  border-radius:8px;
+  transition:0.3s;
+}
+
+.web-links a:hover{
+  background:white;
+}
+
+/* GRID IMÁGENES */
+.grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(250px,1fr));
+  gap:20px;
+}
+
+.grid img{
+  width:100%;
+  height:250px;
+  object-fit:cover;
+  border-radius:10px;
+  transition:0.3s;
+}
+
+.grid img:hover{
+  transform:scale(1.05);
+}
+
+/* PRESENTACIONES */
+.pdf-links a{
+  display:block;
+  margin-bottom:15px;
+  color:#00ffc3;
+  text-decoration:none;
+  font-weight:600;
+}
+
+.pdf-links a:hover{
+  text-decoration:underline;
+}
+
+/* VIDEOS */
+.videos{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(300px,1fr));
+  gap:20px;
+}
+
+video{
+  width:100%;
+  border-radius:10px;
+}
+
+footer{
+  text-align:center;
+  padding:40px;
+  background:#111;
+  color:#777;
+}
+
+</style>
+</head>
+
+<body>
+
+<header>
+  <h1>Jesús Chavez</h1>
+  <p>Desarrollador XR | Tecnología Creativa | Soluciones Digitales</p>
+</header>
+
+<section>
+  <h2>Webs</h2>
+  <div class="web-links">
+    <a href="https://tusitio1.com" target="_blank">Proyecto Web 1</a>
+    <a href="https://tusitio2.com" target="_blank">Proyecto Web 2</a>
+    <a href="https://tusitio3.com" target="_blank">Proyecto Web 3</a>
+  </div>
+</section>
+
+<section>
+  <h2>Diseños</h2>
+  <div class="grid">
+    <img src="img/diseno1.webp" loading="lazy">
+    <img src="img/diseno2.webp" loading="lazy">
+    <img src="img/diseno3.webp" loading="lazy">
+    <img src="img/diseno4.webp" loading="lazy">
+  </div>
+</section>
+
+<section>
+  <h2>Presentaciones</h2>
+  <div class="pdf-links">
+    <a href="pdf/presentacion1.pdf" target="_blank">Presentación Corporativa 1</a>
+    <a href="pdf/presentacion2.pdf" target="_blank">Presentación Proyecto XR</a>
+  </div>
+</section>
+
+<section>
+  <h2>Animaciones</h2>
+  <div class="videos">
+    <video controls>
+      <source src="videos/animacion1.mp4" type="video/mp4">
+    </video>
+    <video controls>
+      <source src="videos/animacion2.mp4" type="video/mp4">
+    </video>
+  </div>
+</section>
+
+<footer>
+  © 2026 Jesús Chavez - Portafolio Profesional
+</footer>
+
+</body>
+</html>
